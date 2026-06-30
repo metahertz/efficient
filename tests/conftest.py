@@ -16,7 +16,7 @@ def set_test_env():
 
 @pytest.fixture(scope="session")
 def sync_client():
-    client = MongoClient(MONGO_URI)
+    client = MongoClient(MONGO_URI, directConnection=True, serverSelectionTimeoutMS=5000)
     yield client
     client.drop_database(TEST_DB)
     client.close()
