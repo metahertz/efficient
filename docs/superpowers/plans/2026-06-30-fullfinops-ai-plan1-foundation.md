@@ -1067,9 +1067,174 @@ git commit -m "feat: add CLI start/stop/status commands"
 
 ---
 
+---
+
+### Task 7: Container Infrastructure (DevContainer + Compose Services)
+
+**Files:**
+- Create: `Dockerfile`
+- Create: `.devcontainer/devcontainer.json`
+- Modify: `docker-compose.yml` — add `dev` service (devcontainer) and `daemon` service (production)
+
+**Interfaces:**
+- Produces:
+  - `dev` compose service: Python 3.11 + all deps, source volume-mounted at `/workspace`, connects to `mongodb` via docker network, `sleep infinity` entrypoint (devcontainer keeps it alive)
+  - `daemon` compose service: same image, runs `uvicorn finops.daemon.app:app` directly
+  - `.devcontainer/devcontainer.json`: uses `docker-compose.yml`, targets `dev` service, forwards port 7432, runs `pip install -e '.[dev]'` on create
+  - Inside devcontainer: `finops` CLI available, MongoDB reachable at `mongodb://mongodb:27017`, tests run with `pytest`
+
+- [ ] **Step 1: Write `Dockerfile`**
+
+```dockerfile
+FROM python:3.11-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git curl build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workspace
+
+# Copy only pyproject.toml first so dep layer is cached independently of source changes
+COPY pyproject.toml .
+# Minimal stub so pip install -e . resolves without full source
+RUN mkdir -p finops && touch finops/__init__.py
+RUN pip install --no-cache-dir -e ".[dev]"
+
+# Full source copy (overrides stub; used for daemon service builds)
+COPY . .
+RUN pip install --no-cache-dir -e ".[dev]"
+
+EXPOSE 7432
+CMD ["uvicorn", "finops.daemon.app:app", "--host", "0.0.0.0", "--port", "7432"]
+```
+
+- [ ] **Step 2: Update `docker-compose.yml`**
+
+Replace the existing file completely:
+
+```yaml
+services:
+  mongodb:
+    image: mongodb/mongodb-atlas-local:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.runCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # DevContainer service — source is volume-mounted, changes are instant
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/workspace
+    working_dir: /workspace
+    command: sleep infinity
+    environment:
+      - FINOPS_MONGODB_URI=mongodb://mongodb:27017
+      - FINOPS_DB_NAME=finops
+      - FINOPS_TEST_MONGODB_URI=mongodb://mongodb:27017
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+  # Production/CI service — runs daemon directly from built image
+  daemon:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "7432:7432"
+    environment:
+      - FINOPS_MONGODB_URI=mongodb://mongodb:27017
+      - FINOPS_DB_NAME=finops
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+volumes:
+  mongodb_data:
+```
+
+- [ ] **Step 3: Write `.devcontainer/devcontainer.json`**
+
+```bash
+mkdir -p .devcontainer
+```
+
+```json
+{
+  "name": "fullFinOps-AI",
+  "dockerComposeFile": ["../docker-compose.yml"],
+  "service": "dev",
+  "workspaceFolder": "/workspace",
+  "forwardPorts": [7432],
+  "postCreateCommand": "pip install -e '.[dev]'",
+  "remoteUser": "root",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance"
+      ]
+    }
+  }
+}
+```
+
+- [ ] **Step 4: Verify the image builds**
+
+```bash
+docker compose build dev
+```
+
+Expected: build completes without errors.
+
+- [ ] **Step 5: Verify the dev container starts and tests run inside it**
+
+```bash
+docker compose up -d mongodb
+docker compose up -d dev
+docker compose exec dev pytest tests/db/ tests/modules/ -v
+```
+
+Expected: all previously passing tests pass inside the container (MongoDB reachable at `mongodb://mongodb:27017`).
+
+- [ ] **Step 6: Verify daemon service starts**
+
+```bash
+docker compose up -d daemon
+```
+
+Wait 5 seconds, then:
+
+```bash
+curl http://localhost:7432/health
+```
+
+Expected: `{"status":"ok","version":"0.1.0"}`
+
+```bash
+docker compose stop daemon
+```
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add Dockerfile .devcontainer/ docker-compose.yml
+git commit -m "feat: add DevContainer and docker-compose service definitions"
+```
+
+---
+
 ## Self-Review Checklist
 
-- [x] **Spec coverage:** Docker setup ✓, pyproject.toml ✓, MongoDB client ✓, all indexes ✓, BaseModule ABC ✓, daemon /health ✓, /config GET/PUT ✓, CLI start/stop/status ✓, MongoDB version check ✓, default config insertion ✓
+- [x] **Spec coverage:** Docker setup ✓, pyproject.toml ✓, MongoDB client ✓, all indexes ✓, BaseModule ABC ✓, daemon /health ✓, /config GET/PUT ✓, CLI start/stop/status ✓, MongoDB version check ✓, default config insertion ✓, Dockerfile ✓, DevContainer ✓, dev + daemon compose services ✓
 - [x] **Placeholder scan:** No TBD/TODO in any step — all code is complete
 - [x] **Type consistency:** `OptimizeRequest` and `ModuleResult` defined in Task 4 and referenced correctly; `get_async_db()` / `get_sync_db()` defined in Task 2 and used in Tasks 3, 5; `create_all_indexes(db)` defined in Task 3 and called in Task 5
 - [x] **Interface chain:** Tasks 2 → 3 → 5 (client → indexes → daemon); Task 4 standalone; Task 6 depends on daemon import only
