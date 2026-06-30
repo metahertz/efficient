@@ -4,7 +4,7 @@
 
 **Architecture:** Daemon-first. A local FastAPI daemon (port 7432) owns all MongoDB connections, module logic, and metrics collection. Every plugin (LangChain, LlamaIndex, AutoGen, CrewAI, raw Anthropic/OpenAI, Claude Code MCP) is a thin HTTP client to the daemon. On/Off toggles and benchmark harness live in the daemon.
 
-**Tech Stack:** Python 3.11+ (FastAPI, Click, langchain-mongodb, tree-sitter, llmlingua, httpx), TypeScript (MCP SDK), MongoDB 7.0+ (documents + native vector search), vanilla HTML/JS dashboard.
+**Tech Stack:** Python 3.11+ (FastAPI, Click, langchain-mongodb, tree-sitter, llmlingua, httpx, voyageai), TypeScript (MCP SDK), MongoDB 7.0+ with `mongot` via `mongodb/mongodb-atlas-local` Docker image (documents + native vector search), vanilla HTML/JS dashboard.
 
 ---
 
@@ -12,7 +12,7 @@
 
 - MongoDB version ≥ 7.0 required with `mongot` process for vector search. Two supported local setups: **MongoDB Atlas** (cloud) or **MongoDB Atlas Local** (Docker: `mongodb/mongodb-atlas-local`). Community edition without `mongot` is not supported. Daemon exits with a clear error if vector search is unavailable.
 - Python ≥ 3.11
-- All vector embeddings: `text-embedding-3-small` (1536 dimensions, OpenAI) — configurable
+- Default embedding model: `voyage-4-nano` (1024 dimensions, Voyage AI) via the `voyageai` Python SDK. Shares an embedding space with `voyage-4`, so indexes built with `voyage-4-nano` are compatible with `voyage-4` retrieval without re-indexing. Configurable via `config.embedding_model`.
 - Default daemon port: 7432 — configurable via env var `FINOPS_PORT`
 - Monetary savings estimates use configurable per-model input/output token costs in the `config` collection (defaults: `$0.000003/input_token`, `$0.000015/output_token` matching claude-sonnet-4-6 pricing)
 - No Mem0 dependency — memory stack built entirely on `langchain-mongodb`
@@ -294,10 +294,10 @@ Database: `finops`. All `embedding` fields use cosine similarity vector index.
 
 ```javascript
 codebase_nodes:    { _id, repo_id, symbol, type, file_path, line_start, line_end,
-                     source_snippet, language, embedding[1536], references[], indexed_at }
+                     source_snippet, language, embedding[1024], references[], indexed_at }
                    // Indexes: {repo_id,symbol}, {repo_id,file_path}, vector(embedding)
 
-cache_entries:     { _id, prompt_hash, embedding[1536], prompt_preview, response,
+cache_entries:     { _id, prompt_hash, embedding[1024], prompt_preview, response,
                      framework, model, tokens_saved, hit_count, created_at,
                      last_hit_at, expires_at }
                    // Indexes: {prompt_hash} unique, vector(embedding), TTL(expires_at)
@@ -306,11 +306,11 @@ working_memory:    { _id, agent_id, session_id,
                      messages[{role,content,timestamp}], created_at, updated_at }
                    // Indexes: {agent_id, session_id}
 
-episodic_memory:   { _id, agent_id, content, embedding[1536],
+episodic_memory:   { _id, agent_id, content, embedding[1024],
                      source_turns[ObjectId], created_at, expires_at }
                    // Indexes: {agent_id}, vector(embedding), TTL(expires_at)
 
-semantic_memory:   { _id, agent_id, fact, embedding[1536],
+semantic_memory:   { _id, agent_id, fact, embedding[1024],
                      confidence, source_session, created_at, updated_at, expires_at }
                    // Indexes: {agent_id}, vector(embedding), TTL(expires_at)
 
@@ -319,7 +319,7 @@ compression_stats: { _id, request_id, framework, model,
                    // Indexes: {created_at}
 
 corpus_chunks:     { _id, corpus_id, source_file, chunk_index, text,
-                     embedding[1536], bm25_tokens[string], metadata{}, created_at }
+                     embedding[1024], bm25_tokens[string], metadata{}, created_at }
                    // Indexes: {corpus_id}, vector(embedding), text(bm25_tokens)
 
 benchmark_runs:    { _id:run_id, benchmark, model_config, modules_enabled[],
@@ -335,7 +335,9 @@ config:            { _id:"global", modules:{ codebase_graph:{enabled,repo_paths[
                      context_compressor:{enabled,token_threshold,target_ratio},
                      hybrid_retrieval:{enabled,top_k,rrf_k},
                      benchmark_runner:{enabled,judge_model} },
-                     embedding_model, cost_per_token, updated_at }
+                     embedding_model,   // default: "voyage-4-nano"
+                     embedding_dimensions,  // default: 1024
+                     cost_per_input_token, cost_per_output_token, updated_at }
 ```
 
 Vector indexes created at daemon startup via `pymongo` if not present. Daemon checks MongoDB ≥ 7.0 on startup.
