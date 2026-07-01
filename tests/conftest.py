@@ -4,7 +4,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo import MongoClient
 from finops.db.client import reset_clients
 
-MONGO_URI = os.getenv("FINOPS_TEST_MONGODB_URI", "mongodb://localhost:27017")
+MONGO_URI = os.getenv("FINOPS_TEST_MONGODB_URI", "mongodb://localhost:27017/?directConnection=true")
 TEST_DB   = "finops_test"
 
 
