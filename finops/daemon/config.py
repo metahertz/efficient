@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from finops.db.collections import CONFIG
+from finops.db.indexes import EMBEDDING_DIMENSIONS
 
 DEFAULT_CONFIG: dict = {
     "_id": "global",
@@ -14,7 +15,7 @@ DEFAULT_CONFIG: dict = {
         "benchmark_runner":  {"enabled": True,  "judge_model": "claude-sonnet-4-6"},
     },
     "embedding_model":       "voyage-4-nano",
-    "embedding_dimensions":  1024,
+    "embedding_dimensions":  EMBEDDING_DIMENSIONS,
     "cost_per_input_token":  0.000003,
     "cost_per_output_token": 0.000015,
     "updated_at":            None,
@@ -30,10 +31,25 @@ async def load_config(db: AsyncIOMotorDatabase) -> dict:
     return dict(doc)
 
 
+def _flatten(obj: dict, prefix: str = "") -> dict:
+    """Flatten nested dict to dot-notation keys for MongoDB $set."""
+    result = {}
+    for k, v in obj.items():
+        full_key = f"{prefix}.{k}" if prefix else k
+        if isinstance(v, dict):
+            result.update(_flatten(v, full_key))
+        else:
+            result[full_key] = v
+    return result
+
+
 async def save_config(db: AsyncIOMotorDatabase, patch: dict) -> dict:
+    # Ensure the document is seeded with defaults before patching.
+    await load_config(db)
+    flat = _flatten(patch)
+    flat["updated_at"] = datetime.now(timezone.utc)
     await db[CONFIG].update_one(
         {"_id": "global"},
-        {"$set": {**patch, "updated_at": datetime.now(timezone.utc)}},
-        upsert=True,
+        {"$set": flat},
     )
     return await load_config(db)

@@ -29,9 +29,24 @@ def test_start_blocks_if_pid_file_exists(tmp_path):
     pid_file = tmp_path / "daemon.pid"
     pid_file.write_text("99999")
     runner = CliRunner()
-    with patch("finops.cli.main.PID_FILE", pid_file):
+    with patch("finops.cli.main.PID_FILE", pid_file), \
+         patch("os.kill", return_value=None):  # process appears alive
         result = runner.invoke(cli, ["start"])
     assert "already running" in result.output
+
+
+def test_start_clears_stale_pid_file(tmp_path):
+    pid_file = tmp_path / "daemon.pid"
+    pid_file.write_text("99999")
+    mock_proc = MagicMock()
+    mock_proc.pid = 12345
+    runner = CliRunner()
+    with patch("finops.cli.main.PID_FILE", pid_file), \
+         patch("os.kill", side_effect=[ProcessLookupError, None]), \
+         patch("subprocess.Popen", return_value=mock_proc):
+        result = runner.invoke(cli, ["start"])
+    assert "stale" in result.output.lower()
+    assert pid_file.read_text().strip() == "12345"
 
 
 def test_stop_removes_pid_file(tmp_path):

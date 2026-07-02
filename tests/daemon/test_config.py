@@ -35,3 +35,18 @@ async def test_config_has_no_id_field(async_client):
     ) as client:
         r = await client.get("/config")
     assert "_id" not in r.json()
+
+
+async def test_put_config_preserves_other_modules(async_client):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        r = await client.put("/config", json={"modules": {"semantic_cache": {"enabled": False}}})
+    data = r.json()
+    assert data["modules"]["semantic_cache"]["enabled"] is False
+    assert "agent_memory" in data["modules"]  # must not be deleted
+    assert "codebase_graph" in data["modules"]  # must not be deleted
+
+
+async def test_put_config_ignores_id_field(async_client):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        r = await client.put("/config", json={"_id": "evil", "modules": {"semantic_cache": {"enabled": False}}})
+    assert r.status_code == 200

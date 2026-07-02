@@ -53,6 +53,7 @@ async def get_config():
 
 @app.put("/config")
 async def put_config(patch: dict):
+    patch.pop("_id", None)
     db = get_async_db()
     config = await save_config(db, patch)
     config.pop("_id", None)

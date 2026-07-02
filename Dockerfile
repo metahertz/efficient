@@ -17,4 +17,4 @@ COPY . .
 RUN pip install --no-cache-dir -e ".[dev]"
 
 EXPOSE 7432
-CMD ["uvicorn", "finops.daemon.app:app", "--host", "0.0.0.0", "--port", "7432"]
+CMD uvicorn finops.daemon.app:app --host 0.0.0.0 --port ${FINOPS_PORT:-7432}

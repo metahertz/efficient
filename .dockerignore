@@ -1,0 +1,12 @@
+.git
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+*.egg-info
+venv
+.venv
+env
+.env
+.superpowers
+docs/superpowers

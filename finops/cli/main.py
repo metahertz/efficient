@@ -20,8 +20,14 @@ def cli():
 def start():
     """Start the finops daemon in the background."""
     if PID_FILE.exists():
-        click.echo("Daemon already running. Run 'finops stop' first.")
-        return
+        pid = int(PID_FILE.read_text().strip())
+        try:
+            os.kill(pid, 0)  # liveness check — raises if process is gone
+            click.echo("Daemon already running. Run 'finops stop' first.")
+            return
+        except ProcessLookupError:
+            click.echo(f"Removing stale PID file (process {pid} is gone).")
+            PID_FILE.unlink(missing_ok=True)
     PID_FILE.parent.mkdir(parents=True, exist_ok=True)
     port = os.getenv("FINOPS_PORT", "7432")
     proc = subprocess.Popen(
