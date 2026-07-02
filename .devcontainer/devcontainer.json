@@ -1,0 +1,17 @@
+{
+  "name": "fullFinOps-AI",
+  "dockerComposeFile": ["../docker-compose.yml"],
+  "service": "dev",
+  "workspaceFolder": "/workspace",
+  "forwardPorts": [7432],
+  "postCreateCommand": "pip install -e '.[dev]'",
+  "remoteUser": "root",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance"
+      ]
+    }
+  }
+}

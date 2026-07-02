@@ -8,8 +8,40 @@ services:
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.runCommand('ping').ok"]
       interval: 10s
-      timeout: 5s
-      retries: 5
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  # DevContainer service — source is volume-mounted, changes are instant
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/workspace
+    working_dir: /workspace
+    command: sleep infinity
+    environment:
+      - FINOPS_MONGODB_URI=mongodb://mongodb:27017
+      - FINOPS_DB_NAME=finops
+      - FINOPS_TEST_MONGODB_URI=mongodb://mongodb:27017
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+  # Production/CI service — runs daemon directly from built image
+  daemon:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "7432:7432"
+    environment:
+      - FINOPS_MONGODB_URI=mongodb://mongodb:27017
+      - FINOPS_DB_NAME=finops
+    depends_on:
+      mongodb:
+        condition: service_healthy
 
 volumes:
   mongodb_data:
