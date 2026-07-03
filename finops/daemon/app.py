@@ -112,3 +112,33 @@ async def cache_store(body: dict):
         corpus_id=body.get("corpus_id", ""),
     )
     return {"stored": True}
+
+
+@app.post("/memory/retrieve")
+async def memory_retrieve(body: dict):
+    agent_id = body.get("agent_id", "default")
+    query = body.get("query", "")
+    db = get_async_db()
+    config = await load_config(db)
+    mem_cfg = config.get("modules", {}).get("agent_memory", {})
+    from finops.modules.agent_memory import AgentMemory
+    memory = AgentMemory(db, mem_cfg)
+    working = await memory._get_working_memory(agent_id)
+    episodic = await memory._get_episodic_memory(agent_id, query)
+    semantic = await memory._get_semantic_memory(agent_id, query)
+    return {"working": working, "episodic": episodic, "semantic": semantic}
+
+
+@app.post("/memory/store")
+async def memory_store(body: dict):
+    agent_id = body.get("agent_id", "default")
+    session_id = body.get("session_id", "default")
+    turn = body.get("turn", "")
+    response = body.get("response", "")
+    db = get_async_db()
+    config = await load_config(db)
+    mem_cfg = config.get("modules", {}).get("agent_memory", {})
+    from finops.modules.agent_memory import AgentMemory
+    memory = AgentMemory(db, mem_cfg)
+    await memory.store_turn(agent_id, session_id, turn, response)
+    return {"stored": True}
