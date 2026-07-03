@@ -59,3 +59,17 @@ async def test_process_no_op_when_no_repo_configured(graph):
     assert new_req.context == "orig"
     assert result.tokens_saved == 0
     assert result.short_circuit is False
+
+
+async def test_index_file_stores_both_same_named_symbols(graph, finops_db, sample_source):
+    await graph.index_file("repo1", "sample.py", sample_source)
+    count = await finops_db[CODEBASE_NODES].count_documents({"repo_id": "repo1", "symbol": "add"})
+    assert count == 2
+
+
+async def test_process_no_op_when_no_symbols_match(finops_db):
+    cg = CodebaseGraph(finops_db, {"repo_paths": ["repo1"]})
+    req = OptimizeRequest(prompt="find something", context="ORIG", agent_id="a", framework="f")
+    new_req, result = await cg.process(req)
+    assert new_req.context == "ORIG"
+    assert result.tokens_saved == 0

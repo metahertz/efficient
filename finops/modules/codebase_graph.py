@@ -125,7 +125,7 @@ class CodebaseGraph(BaseModule):
         now = datetime.now(timezone.utc)
         for sym, emb in zip(symbols, embeddings):
             await self._db[CODEBASE_NODES].update_one(
-                {"repo_id": repo_id, "symbol": sym["symbol"], "file_path": file_path},
+                {"repo_id": repo_id, "file_path": file_path, "line_start": sym["line_start"]},
                 {"$set": {**sym, "embedding": emb, "indexed_at": now}},
                 upsert=True,
             )
