@@ -81,6 +81,69 @@ async def post_optimize(body: dict):
     return await pipeline.run(request)
 
 
+@app.post("/complete")
+async def post_complete(body: dict):
+    db = get_async_db()
+    config = await load_config(db)
+    strategy = get_strategy(body.get("strategy") or config.get("strategy"))
+    from finops.daemon.router import ModulePipeline
+    pipeline = ModulePipeline(db, config.get("modules", {}), strategy)
+    request = OptimizeRequest(
+        prompt=body.get("prompt", ""),
+        context=body.get("context", ""),
+        agent_id=body.get("agent_id", "default"),
+        framework=body.get("framework", "unknown"),
+        corpus_id=body.get("corpus_id"),
+    )
+    optimized = await pipeline.run(request)
+
+    if optimized["cache_hit"]:
+        return {
+            "response": optimized["optimized_context"],
+            "tokens_saved": optimized["tokens_saved"],
+            "cache_hit": True,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "module_results": optimized["module_results"],
+        }
+
+    from finops.daemon.providers import call_llm
+    response_text, input_tokens, output_tokens = await call_llm(
+        provider=body.get("provider", "anthropic"),
+        model=body.get("model", ""),
+        prompt=optimized["optimized_prompt"],
+        context=optimized["optimized_context"],
+    )
+
+    cache_cfg = {**config.get("modules", {}).get("semantic_cache", {}), "cache_key": strategy.cache_key}
+    from finops.modules.semantic_cache import SemanticCache
+    cache = SemanticCache(db, cache_cfg)
+    await cache.store(
+        prompt=request.prompt,
+        response=response_text,
+        framework=request.framework,
+        model=body.get("model", ""),
+        tokens_saved=input_tokens + output_tokens,
+        agent_id=request.agent_id,
+        corpus_id=request.corpus_id or "",
+    )
+
+    from finops.modules.agent_memory import AgentMemory
+    memory = AgentMemory(db, config.get("modules", {}).get("agent_memory", {}))
+    await memory.store_turn(
+        request.agent_id, body.get("session_id", "default"), request.prompt, response_text
+    )
+
+    return {
+        "response": response_text,
+        "tokens_saved": optimized["tokens_saved"],
+        "cache_hit": False,
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "module_results": optimized["module_results"],
+    }
+
+
 @app.get("/cache/lookup")
 async def cache_lookup(prompt_hash: str, embedding: list[float] | None = None):
     db = get_async_db()
