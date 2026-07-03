@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock
-from finops.modules.context_compressor import ContextCompressor
+from finops.modules.context_compressor import ContextCompressor, _count_tokens
 from finops.modules._base import OptimizeRequest
 from finops.db.collections import COMPRESSION_STATS
 
@@ -38,18 +38,20 @@ def long_req():
     return OptimizeRequest(prompt="hi", context=long_ctx, agent_id="a1", framework="test")
 
 
-async def test_bypass_when_context_below_threshold(compressor, short_req):
+async def test_bypass_when_context_below_threshold(compressor, finops_db, short_req):
     new_req, result = await compressor.process(short_req)
     assert new_req.context == "short"
     assert result.tokens_saved == 0
     assert result.tokens_added == 0
     assert "bypass" in result.detail
+    assert await finops_db[COMPRESSION_STATS].count_documents({}) == 0
 
 
 async def test_compresses_when_above_threshold(compressor, long_req):
     before = len(long_req.context) // 4
     new_req, result = await compressor.process(long_req)
     assert len(new_req.context) < len(long_req.context)
+    assert _count_tokens(new_req.context) < _count_tokens(long_req.context)
     assert result.tokens_saved > 0
     assert result.tokens_added == 0
     assert result.baseline_tokens == before
