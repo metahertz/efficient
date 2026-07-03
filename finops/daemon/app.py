@@ -6,6 +6,7 @@ from finops.db.indexes import create_all_indexes
 from finops.daemon.config import load_config, save_config
 from finops.db.collections import CACHE_ENTRIES
 from finops.daemon.strategies import get_strategy
+from finops.modules._base import OptimizeRequest
 
 VERSION = "0.1.0"
 
@@ -61,6 +62,23 @@ async def put_config(patch: dict):
     config = await save_config(db, patch)
     config.pop("_id", None)
     return config
+
+
+@app.post("/optimize")
+async def post_optimize(body: dict):
+    db = get_async_db()
+    config = await load_config(db)
+    strategy = get_strategy(body.get("strategy") or config.get("strategy"))
+    from finops.daemon.router import ModulePipeline
+    pipeline = ModulePipeline(db, config.get("modules", {}), strategy)
+    request = OptimizeRequest(
+        prompt=body.get("prompt", ""),
+        context=body.get("context", ""),
+        agent_id=body.get("agent_id", "default"),
+        framework=body.get("framework", "unknown"),
+        corpus_id=body.get("corpus_id"),
+    )
+    return await pipeline.run(request)
 
 
 @app.get("/cache/lookup")
