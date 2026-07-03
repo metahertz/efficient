@@ -3,6 +3,8 @@ from fastapi import FastAPI
 from finops.db.client import get_async_db, get_sync_db
 from finops.db.indexes import create_all_indexes
 from finops.daemon.config import load_config, save_config
+from finops.db.collections import CACHE_ENTRIES
+from finops.daemon.strategies import get_strategy
 
 VERSION = "0.1.0"
 
@@ -58,3 +60,52 @@ async def put_config(patch: dict):
     config = await save_config(db, patch)
     config.pop("_id", None)
     return config
+
+
+@app.get("/cache/lookup")
+async def cache_lookup(prompt_hash: str, embedding: list[float] | None = None):
+    db = get_async_db()
+    config = await load_config(db)
+    cache_cfg = config.get("modules", {}).get("semantic_cache", {})
+    entry = await db[CACHE_ENTRIES].find_one({"prompt_hash": prompt_hash})
+    if entry:
+        return {"hit": True, "response": entry["response"], "similarity_score": 1.0}
+    if embedding:
+        threshold = cache_cfg.get("similarity_threshold", 0.92)
+        pipeline = [
+            {
+                "$vectorSearch": {
+                    "index": "cache_vector_index",
+                    "path": "embedding",
+                    "queryVector": embedding,
+                    "numCandidates": 20,
+                    "limit": 1,
+                }
+            },
+            {"$addFields": {"_score": {"$meta": "vectorSearchScore"}}},
+            {"$match": {"_score": {"$gte": threshold}}},
+        ]
+        async for doc in db[CACHE_ENTRIES].aggregate(pipeline):
+            return {"hit": True, "response": doc["response"], "similarity_score": doc["_score"]}
+    return {"hit": False, "response": None, "similarity_score": 0.0}
+
+
+@app.post("/cache/store")
+async def cache_store(body: dict):
+    db = get_async_db()
+    config = await load_config(db)
+    cache_cfg = config.get("modules", {}).get("semantic_cache", {})
+    strategy = get_strategy(config.get("strategy"))
+    cache_cfg = {**cache_cfg, "cache_key": strategy.cache_key}
+    from finops.modules.semantic_cache import SemanticCache
+    cache = SemanticCache(db, cache_cfg)
+    await cache.store(
+        prompt=body.get("prompt", ""),
+        response=body.get("response", ""),
+        framework=body.get("framework", "unknown"),
+        model=body.get("model", ""),
+        tokens_saved=int(body.get("tokens_saved", 0)),
+        agent_id=body.get("agent_id", ""),
+        corpus_id=body.get("corpus_id", ""),
+    )
+    return {"stored": True}
