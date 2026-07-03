@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from fastapi import FastAPI
 from finops.db.client import get_async_db, get_sync_db
 from finops.db.indexes import create_all_indexes
@@ -69,6 +70,7 @@ async def cache_lookup(prompt_hash: str, embedding: list[float] | None = None):
     cache_cfg = config.get("modules", {}).get("semantic_cache", {})
     entry = await db[CACHE_ENTRIES].find_one({"prompt_hash": prompt_hash})
     if entry:
+        await db[CACHE_ENTRIES].update_one({"_id": entry["_id"]}, {"$inc": {"hit_count": 1}, "$set": {"last_hit_at": datetime.now(timezone.utc)}})
         return {"hit": True, "response": entry["response"], "similarity_score": 1.0}
     if embedding:
         threshold = cache_cfg.get("similarity_threshold", 0.92)
@@ -86,6 +88,7 @@ async def cache_lookup(prompt_hash: str, embedding: list[float] | None = None):
             {"$match": {"_score": {"$gte": threshold}}},
         ]
         async for doc in db[CACHE_ENTRIES].aggregate(pipeline):
+            await db[CACHE_ENTRIES].update_one({"_id": doc["_id"]}, {"$inc": {"hit_count": 1}, "$set": {"last_hit_at": datetime.now(timezone.utc)}})
             return {"hit": True, "response": doc["response"], "similarity_score": doc["_score"]}
     return {"hit": False, "response": None, "similarity_score": 0.0}
 

@@ -9,10 +9,6 @@ from finops.modules.embeddings import embed_query, embed_documents
 from finops.db.collections import CACHE_ENTRIES
 
 
-def _count_tokens(text: str) -> int:
-    return max(1, len(text) // 4)
-
-
 class SemanticCache(BaseModule):
     name = "semantic_cache"
 

@@ -38,6 +38,21 @@ async def test_cache_lookup_exact_hit(client, finops_db):
     assert data["response"] == "hi there"
 
 
+async def test_cache_lookup_exact_hit_increments_hit_count(client, finops_db):
+    prompt = "increment me"
+    prompt_hash = hashlib.sha256(prompt.encode()).hexdigest()
+    await finops_db[CACHE_ENTRIES].insert_one({
+        "prompt_hash": prompt_hash, "embedding": [0.1] * 1024, "prompt_preview": prompt,
+        "response": "incremented", "framework": "test", "model": "claude", "tokens_saved": 50,
+        "hit_count": 0, "created_at": datetime.now(timezone.utc), "last_hit_at": None, "expires_at": None,
+    })
+    resp = await client.get("/cache/lookup", params={"prompt_hash": prompt_hash})
+    assert resp.json()["hit"] is True
+    doc = await finops_db[CACHE_ENTRIES].find_one({"prompt_hash": prompt_hash})
+    assert doc["hit_count"] == 1
+    assert doc["last_hit_at"] is not None
+
+
 async def test_cache_store_endpoint_writes(client, finops_db):
     resp = await client.post("/cache/store", json={
         "prompt": "cache me", "response": "cached answer", "framework": "test",
