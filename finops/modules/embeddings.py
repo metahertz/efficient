@@ -15,6 +15,8 @@ def _get_model() -> SentenceTransformer:
 
 
 def embed_documents(texts: list[str]) -> list[list[float]]:
+    if not texts:
+        return []
     model = _get_model()
     vecs = model.encode_document(texts, normalize_embeddings=True)
     return [v.tolist() for v in vecs]

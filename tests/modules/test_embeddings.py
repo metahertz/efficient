@@ -34,7 +34,11 @@ def test_embed_query_and_documents_use_distinct_encoders(monkeypatch):
     m.encode_query.assert_called_once()
 
 
-def test_reset_model_clears_singleton():
-    emb._model = object()
+def test_reset_model_clears_singleton(monkeypatch):
+    monkeypatch.setattr(emb, "_model", object())
     emb.reset_model()
     assert emb._model is None
+
+
+def test_embed_documents_empty_input_returns_empty():
+    assert emb.embed_documents([]) == []
