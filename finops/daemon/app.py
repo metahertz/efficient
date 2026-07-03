@@ -223,3 +223,10 @@ async def memory_store(body: dict):
     memory = AgentMemory(db, mem_cfg)
     await memory.store_turn(agent_id, session_id, turn, response)
     return {"stored": True}
+
+
+@app.get("/metrics")
+async def get_metrics():
+    from finops.daemon.metrics import aggregate_metrics
+    db = get_async_db()
+    return await aggregate_metrics(db)
