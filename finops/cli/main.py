@@ -6,8 +6,12 @@ from pathlib import Path
 import click
 import httpx
 
-DAEMON_URL = os.getenv("FINOPS_DAEMON_URL", "http://localhost:7432")
-PID_FILE   = Path.home() / ".finops" / "daemon.pid"
+
+def _daemon_url() -> str:
+    return os.getenv("FINOPS_DAEMON_URL", "http://localhost:7432")
+
+
+PID_FILE = Path.home() / ".finops" / "daemon.pid"
 
 
 @click.group()
@@ -36,7 +40,7 @@ def start():
         stderr=subprocess.DEVNULL,
     )
     PID_FILE.write_text(str(proc.pid))
-    click.echo(f"Daemon started (PID {proc.pid}) at {DAEMON_URL}")
+    click.echo(f"Daemon started (PID {proc.pid}) at {_daemon_url()}")
 
 
 @cli.command()
@@ -58,14 +62,28 @@ def stop():
 def status():
     """Show daemon health and module on/off state."""
     try:
-        health = httpx.get(f"{DAEMON_URL}/health", timeout=2.0).json()
+        health = httpx.get(f"{_daemon_url()}/health", timeout=2.0).json()
         click.echo(f"● daemon running  version={health['version']}")
-        modules = httpx.get(f"{DAEMON_URL}/config", timeout=2.0).json().get("modules", {})
+        modules = httpx.get(f"{_daemon_url()}/config", timeout=2.0).json().get("modules", {})
         for name, cfg in modules.items():
             state = "ON " if cfg.get("enabled") else "OFF"
             click.echo(f"  [{state}] {name}")
     except Exception:
         click.echo("○ daemon not running")
+
+
+@cli.command()
+def warmup():
+    """Download and cache local models (embeddings + compressor)."""
+    from finops.modules.embeddings import _get_model
+    click.echo("Loading embedding model (voyageai/voyage-4-nano)...")
+    _get_model()
+    click.echo("  embedding model ready.")
+    from finops.modules.context_compressor import _get_compressor
+    click.echo("Loading compressor model (LLMLingua-2)...")
+    _get_compressor()
+    click.echo("  compressor model ready.")
+    click.echo("Warmup complete.")
 
 
 if __name__ == "__main__":

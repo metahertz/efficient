@@ -1,5 +1,5 @@
 import pytest
-from finops.modules._base import BaseModule, OptimizeRequest, ModuleResult
+from finops.modules._base import BaseModule, ModuleResult, OptimizeRequest
 
 
 class PassthroughModule(BaseModule):
@@ -53,3 +53,34 @@ def test_module_result_fields():
     )
     assert r.tokens_saved == 50
     assert r.detail == "compressed"
+
+
+def test_subclass_without_name_raises():
+    class Unnamed(BaseModule):
+        async def process(self, request):
+            return request, None
+        def is_enabled(self):
+            return True
+    with pytest.raises(TypeError, match="must define a non-empty 'name'"):
+        Unnamed()
+
+
+def test_module_result_has_honest_metric_defaults():
+    r = ModuleResult(
+        module="x", tokens_in=0, tokens_out=0,
+        tokens_saved=0, latency_ms=0.0, detail="",
+    )
+    assert r.short_circuit is False
+    assert r.tokens_added == 0
+    assert r.baseline_tokens == 0
+
+
+def test_module_result_honest_metric_fields_can_be_set():
+    r = ModuleResult(
+        module="x", tokens_in=0, tokens_out=0,
+        tokens_saved=0, latency_ms=0.0, detail="",
+        short_circuit=True, tokens_added=42, baseline_tokens=1000,
+    )
+    assert r.short_circuit is True
+    assert r.tokens_added == 42
+    assert r.baseline_tokens == 1000

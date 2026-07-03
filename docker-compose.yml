@@ -12,36 +12,42 @@ services:
       retries: 10
       start_period: 30s
 
-  # DevContainer service — source is volume-mounted, changes are instant
   dev:
     build:
       context: .
       dockerfile: Dockerfile
+      target: dev
     volumes:
       - .:/workspace
+      - hf_cache:/root/.cache/huggingface
     working_dir: /workspace
     command: sleep infinity
     environment:
       - FINOPS_MONGODB_URI=mongodb://mongodb:27017
       - FINOPS_DB_NAME=finops
       - FINOPS_TEST_MONGODB_URI=mongodb://mongodb:27017
+      - HF_HOME=/root/.cache/huggingface
     depends_on:
       mongodb:
         condition: service_healthy
 
-  # Production/CI service — runs daemon directly from built image
   daemon:
     build:
       context: .
       dockerfile: Dockerfile
+      target: base
     ports:
       - "7432:7432"
+    volumes:
+      - hf_cache:/root/.cache/huggingface
     environment:
       - FINOPS_MONGODB_URI=mongodb://mongodb:27017
       - FINOPS_DB_NAME=finops
+      - HF_HOME=/root/.cache/huggingface
     depends_on:
       mongodb:
         condition: service_healthy
 
 volumes:
   mongodb_data:
+  hf_cache:
