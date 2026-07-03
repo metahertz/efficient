@@ -53,5 +53,21 @@ async def test_rrf_fusion_returns_ranked_results():
     results_b = [{"_id": "b"}, {"_id": "c"}, {"_id": "a"}]
     fused = _rrf_fusion(results_a, results_b, k=60)
     ids = [r["_id"] for r in fused]
-    assert "b" in ids
-    assert ids[0] in ("a", "b")
+    # b: 1/61+1/62, a: 1/61+1/63, c: 1/63+1/62 — deterministic order
+    assert ids == ["b", "a", "c"]
+
+
+async def test_process_no_op_when_no_chunks_found(finops_db):
+    module = HybridRetrieval(finops_db, {"top_k": 3, "rrf_k": 60})
+    request = OptimizeRequest(
+        prompt="find me something",
+        context="ctx",
+        agent_id="a1",
+        framework="test",
+        corpus_id="empty-corpus",
+    )
+    new_req, result = await module.process(request)
+    assert new_req is request
+    assert new_req.context == "ctx"
+    assert result.tokens_saved == 0
+    assert "no chunks" in result.detail
