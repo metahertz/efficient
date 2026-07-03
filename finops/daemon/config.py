@@ -14,6 +14,7 @@ DEFAULT_CONFIG: dict = {
         "hybrid_retrieval":  {"enabled": False, "top_k": 5, "rrf_k": 60},
         "benchmark_runner":  {"enabled": True,  "judge_model": "claude-sonnet-4-6"},
     },
+    "strategy":              "compose_then_compress",
     "embedding_model":       "voyage-4-nano",
     "embedding_dimensions":  EMBEDDING_DIMENSIONS,
     "cost_per_input_token":  0.000003,
