@@ -20,6 +20,67 @@
 
 ---
 
+## Revision 2 (2026-07-03) — Working-Version Decisions
+
+This section supersedes any conflicting statement earlier in the spec. It captures
+decisions taken to make the optimizer genuinely functional (not merely mock-tested).
+
+- **Embeddings run locally.** `voyage-4-nano` is Voyage AI's open-weight model
+  (Apache-2.0, `voyageai/voyage-4-nano` on HuggingFace). It is loaded locally via
+  `sentence-transformers` with `trust_remote_code=True` and `truncate_dim=1024`
+  (Matryoshka; matches the existing 1024-dim cosine indexes — no rebuild). **No
+  API key required for embeddings.** The model is asymmetric: the embedding helper
+  exposes `embed_documents()` (store side) and `embed_query()` (lookup side), which
+  apply the model's distinct document/query prompt prefixes. Because voyage-4-nano
+  shares an embedding space with hosted voyage-4, local indexes remain compatible
+  with hosted models later. The `voyageai` HTTP SDK becomes optional (hosted
+  upgrade path only); `sentence-transformers` is a core dependency.
+
+- **Pipeline strategy is modular.** Module execution order, context-composition
+  mode, cache-key policy, and short-circuit rules are encapsulated in a named,
+  swappable `Strategy`. Selected via `config.strategy`; the benchmark runner
+  (Plan 3) overrides it per-run to compare strategies on identical workloads.
+  Two built-ins ship:
+  - `compose_then_compress` (default): order
+    `semantic_cache → codebase_graph → hybrid_retrieval → agent_memory →
+    context_compressor`, `composition=compose`, `cache_key=prompt+scope`,
+    `short_circuit_on=[semantic_cache]`.
+  - `cache_first_aggressive`: same front-loaded cache with `cache_key=prompt`
+    (max hit rate), wider similarity threshold, compression off.
+  Adding a third strategy is a data entry in the registry, not a router change.
+
+- **Modules compose, never clobber.** Each augmenter (codebase_graph,
+  hybrid_retrieval, agent_memory) appends a labeled section (e.g.
+  `## Relevant Code`, `## Retrieved Docs`, `## Memory`) to an accumulating context
+  that begins from the caller's original context. The compressor runs last, over
+  the assembled whole. `semantic_cache` short-circuits before any of this on a hit.
+
+- **Cache key policy.** The cache keys on the incoming **prompt**, never the
+  assembled/compressed context (which would drive hit rate to ~zero). Default key
+  is `prompt+scope` (includes `corpus_id`/`agent_id`) to prevent stale cross-corpus
+  answers; a strategy may override to `prompt`-only for maximum hit rate.
+
+- **Loop closure.** The daemon exposes the write-back path `POST /cache/store` and
+  `POST /memory/store`, and additionally an optional `POST /complete` proxy that
+  runs `/optimize`, calls the destination LLM (Anthropic or OpenAI), stores the
+  response in the cache, records the turn in memory, and returns the answer with
+  real savings. The daemon holds provider API keys only for `/complete`; plugins
+  that intercept their framework's pipe may instead call `/optimize` + write-back
+  directly.
+
+- **Honest metrics.** `ModuleResult` distinguishes reduction from augmentation.
+  Reducers (compressor) report `tokens_saved = before − after`. Augmenters report
+  `tokens_saved` against the naive baseline they replace (whole file vs symbol
+  slice; full corpus vs top-k chunks; full history vs selected memory), and record
+  `tokens_added` when they grow the payload. No clamped-to-zero fiction.
+
+- **Verification bar.** Fast mocked unit tests remain the CI gate. Additionally,
+  `@pytest.mark.integration` tests run against live `mongot`: they poll the search
+  index for `queryable: true` after creation, then assert real vector/text
+  retrieval using the real local voyage-4-nano model.
+
+---
+
 ## Architecture
 
 ```
