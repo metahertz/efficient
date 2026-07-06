@@ -6,15 +6,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /workspace
 
+ENV PIP_DEFAULT_TIMEOUT=180 PIP_RETRIES=10
+
 COPY pyproject.toml .
 RUN mkdir -p finops && touch finops/__init__.py
-RUN pip install --no-cache-dir -e "."
+RUN --mount=type=cache,target=/root/.cache/pip pip install -e "."
 
 COPY . .
-RUN pip install --no-cache-dir -e "."
+RUN --mount=type=cache,target=/root/.cache/pip pip install -e "."
 
 EXPOSE 7432
 CMD uvicorn finops.daemon.app:app --host 0.0.0.0 --port ${FINOPS_PORT:-7432}
 
 FROM base AS dev
-RUN pip install --no-cache-dir -e ".[dev]"
+RUN --mount=type=cache,target=/root/.cache/pip pip install -e ".[dev]"
