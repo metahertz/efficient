@@ -59,6 +59,9 @@ container directly.
 
 - The daemon must be up first (`docker compose up -d daemon`); the MCP process is
   short-lived and exits when Claude Code closes the connection.
+- If the daemon isn't already running when Claude Code launches the MCP server,
+  `docker compose run` will attempt to start it via `depends_on`; always prefer
+  `docker compose up -d daemon` first to avoid cold-start latency mid-session.
 - stdout is the MCP protocol channel; the server logs only to stderr.
 - Index a repo before using `lookup_symbol`: call `index_codebase(repo_id, path)`
   where `path` is a directory inside the mounted `/workspace`.

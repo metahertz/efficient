@@ -1,3 +1,5 @@
+import json
+
 import pytest
 from mcp.client.stdio import stdio_client, StdioServerParameters
 from mcp.client.session import ClientSession
@@ -28,9 +30,8 @@ async def test_mcp_optimize_context_roundtrip():
             "prompt": "What is Python?", "context": "some context", "agent_id": "smoke",
         })
     result = await _run_session(cb)
-    payload = result.structuredContent if getattr(result, "structuredContent", None) else None
-    if payload is None:
-        import json
+    payload = getattr(result, "structuredContent", None)
+    if not isinstance(payload, dict) or "optimized_context" not in payload:
         payload = json.loads(result.content[0].text)
     assert "optimized_context" in payload
     assert "tokens_saved" in payload
