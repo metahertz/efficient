@@ -28,6 +28,10 @@ async def codebase_query(query: str, repo_id: str, k: int = 5) -> dict:
     return await _post("/codebase/query", {"repo_id": repo_id, "query": query, "k": k})
 
 
+async def codebase_references(repo_id: str, symbol: str) -> dict:
+    return await _post("/codebase/references", {"repo_id": repo_id, "symbol": symbol})
+
+
 async def memory_retrieve(agent_id: str, query: str) -> dict:
     return await _post("/memory/retrieve", {"agent_id": agent_id, "query": query})
 

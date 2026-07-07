@@ -272,6 +272,23 @@ async def codebase_query(body: dict):
     return {"repo_id": repo_id, "results": out}
 
 
+@app.post("/codebase/references")
+async def codebase_references(body: dict):
+    repo_id = body.get("repo_id", "default")
+    symbol = body.get("symbol", "")
+    db = get_async_db()
+    config = await load_config(db)
+    cg_cfg = config.get("modules", {}).get("codebase_graph", {})
+    from finops.modules.codebase_graph import CodebaseGraph
+    graph = CodebaseGraph(db, cg_cfg)
+    return {
+        "repo_id": repo_id,
+        "symbol": symbol,
+        "callers": await graph.callers(repo_id, symbol),
+        "callees": await graph.callees(repo_id, symbol),
+    }
+
+
 @app.get("/metrics")
 async def get_metrics():
     from finops.daemon.metrics import aggregate_metrics

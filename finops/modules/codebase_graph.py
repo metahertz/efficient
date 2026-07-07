@@ -31,6 +31,22 @@ def _walk(node):
         yield from _walk(child)
 
 
+def _extract_calls(node) -> list[str]:
+    names = set()
+    for n in _walk(node):
+        if n.type == "call":
+            fn = n.child_by_field_name("function")
+            if fn is None:
+                continue
+            if fn.type == "identifier":
+                names.add(fn.text.decode("utf-8"))
+            elif fn.type == "attribute":
+                attr = fn.child_by_field_name("attribute")
+                if attr is not None:
+                    names.add(attr.text.decode("utf-8"))
+    return sorted(names)
+
+
 def _extract_python_symbols(source: str, file_path: str, repo_id: str) -> list[dict]:
     tree = _PARSER.parse(source.encode())
     symbols = []
@@ -51,7 +67,7 @@ def _extract_python_symbols(source: str, file_path: str, repo_id: str) -> list[d
             "line_end": node.end_point[0] + 1,
             "source_snippet": snippet,
             "language": "python",
-            "references": [],
+            "references": _extract_calls(node),
         })
     return symbols
 
@@ -150,6 +166,38 @@ class CodebaseGraph(BaseModule):
         results = []
         for doc in await vector_search(self._db[CODEBASE_NODES], pipeline):
             results.append(doc)
+        return results
+
+    def _node_view(self, doc: dict) -> dict:
+        return {
+            "symbol": doc.get("symbol"),
+            "type": doc.get("type"),
+            "file_path": doc.get("file_path"),
+            "line_start": doc.get("line_start"),
+            "line_end": doc.get("line_end"),
+            "references": doc.get("references", []),
+        }
+
+    async def callees(self, repo_id: str, symbol: str) -> list[dict]:
+        doc = await self._db[CODEBASE_NODES].find_one({"repo_id": repo_id, "symbol": symbol})
+        if not doc:
+            return []
+        names = doc.get("references", [])
+        if not names:
+            return []
+        results = []
+        async for d in self._db[CODEBASE_NODES].find(
+            {"repo_id": repo_id, "symbol": {"$in": list(names)}}, {"embedding": 0}
+        ):
+            results.append(self._node_view(d))
+        return results
+
+    async def callers(self, repo_id: str, symbol: str) -> list[dict]:
+        results = []
+        async for d in self._db[CODEBASE_NODES].find(
+            {"repo_id": repo_id, "references": symbol}, {"embedding": 0}
+        ):
+            results.append(self._node_view(d))
         return results
 
     async def _repo_symbol_tokens(self, repo_id: str) -> int:

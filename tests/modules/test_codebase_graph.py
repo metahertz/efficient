@@ -6,6 +6,7 @@ from finops.db.collections import CODEBASE_NODES
 
 FIXED_EMBEDDING = [0.1] * 1024
 FIXTURE_PATH = Path(__file__).parent.parent / "fixtures" / "sample.py"
+GRAPH_FIXTURE_PATH = Path(__file__).parent.parent / "fixtures" / "graph_sample.py"
 
 
 @pytest.fixture(autouse=True)
@@ -22,6 +23,11 @@ async def graph(finops_db):
 @pytest.fixture
 def sample_source():
     return FIXTURE_PATH.read_text()
+
+
+@pytest.fixture
+def graph_source():
+    return GRAPH_FIXTURE_PATH.read_text()
 
 
 async def test_index_file_returns_symbol_count(graph, sample_source):
@@ -73,3 +79,30 @@ async def test_process_no_op_when_no_symbols_match(finops_db):
     new_req, result = await cg.process(req)
     assert new_req.context == "ORIG"
     assert result.tokens_saved == 0
+
+
+async def test_index_populates_references(graph, finops_db, graph_source):
+    await graph.index_file("grepo", "graph_sample.py", graph_source)
+    doc = await finops_db[CODEBASE_NODES].find_one({"repo_id": "grepo", "symbol": "main"})
+    assert doc is not None
+    assert "helper" in doc["references"]
+
+
+async def test_callees(graph, graph_source):
+    await graph.index_file("grepo", "graph_sample.py", graph_source)
+    callees = await graph.callees("grepo", "main")
+    assert any(c["symbol"] == "helper" for c in callees)
+
+
+async def test_callers(graph, graph_source):
+    await graph.index_file("grepo", "graph_sample.py", graph_source)
+    callers = await graph.callers("grepo", "helper")
+    symbols = {c["symbol"] for c in callers}
+    assert "main" in symbols
+    assert "run" in symbols
+
+
+async def test_callers_empty_for_unreferenced(graph, graph_source):
+    await graph.index_file("grepo", "graph_sample.py", graph_source)
+    callers = await graph.callers("grepo", "main")
+    assert callers == []

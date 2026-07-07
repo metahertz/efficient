@@ -15,13 +15,13 @@ async def _run_session(callback):
             return await callback(session)
 
 
-async def test_mcp_lists_five_tools():
+async def test_mcp_lists_six_tools():
     async def cb(session):
         return await session.list_tools()
     result = await _run_session(cb)
     names = {t.name for t in result.tools}
     assert names == {"optimize_context", "index_codebase", "lookup_symbol",
-                     "retrieve_memory", "store_memory"}
+                     "retrieve_memory", "store_memory", "find_references"}
 
 
 async def test_mcp_optimize_context_roundtrip():

@@ -55,3 +55,16 @@ async def test_codebase_index_missing_path_returns_zero(client, body, expected_r
     assert resp.status_code == 200
     data = resp.json()
     assert data == {"repo_id": expected_repo, "indexed_files": 0, "indexed_symbols": 0}
+
+
+async def test_codebase_references_endpoint(client):
+    await client.post("/codebase/index", json={"repo_id": "rref", "path": "tests/fixtures"})
+    resp = await client.post("/codebase/references", json={"repo_id": "rref", "symbol": "helper"})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["repo_id"] == "rref"
+    assert data["symbol"] == "helper"
+    caller_symbols = {c["symbol"] for c in data["callers"]}
+    assert "main" in caller_symbols
+    assert "run" in caller_symbols
+    assert isinstance(data["callees"], list)

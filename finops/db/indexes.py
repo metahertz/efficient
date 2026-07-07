@@ -54,6 +54,7 @@ def create_all_indexes(db: Database) -> None:
     col = db[CODEBASE_NODES]
     col.create_index([("repo_id", ASCENDING), ("symbol", ASCENDING)])
     col.create_index([("repo_id", ASCENDING), ("file_path", ASCENDING)])
+    col.create_index([("repo_id", ASCENDING), ("references", ASCENDING)])
     _create_vector_index(col, "codebase_vector_index", filter_paths=["repo_id"])
 
     col = db[CACHE_ENTRIES]

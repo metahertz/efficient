@@ -41,6 +41,12 @@ async def store_memory(agent_id: str, session_id: str, turn: str, response: str)
     return await daemon_client.memory_store(agent_id, session_id, turn, response)
 
 
+@mcp.tool()
+async def find_references(repo_id: str, symbol: str) -> dict:
+    """Find the call/dependency edges for a symbol in an indexed repo: which symbols call it (callers) and which symbols it calls (callees). Use to trace impact and navigate the codebase graph."""
+    return await daemon_client.codebase_references(repo_id, symbol)
+
+
 def main() -> None:
     mcp.run(transport="stdio")
 

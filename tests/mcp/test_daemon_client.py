@@ -86,6 +86,14 @@ async def test_codebase_query_posts_query():
     assert out == {"echoed": "/codebase/query"}
 
 
+async def test_codebase_references_posts_references():
+    out = await daemon_client.codebase_references("r", "s")
+    call = _last()
+    assert call["path"] == "/codebase/references"
+    assert call["json"] == {"repo_id": "r", "symbol": "s"}
+    assert out == {"echoed": "/codebase/references"}
+
+
 async def test_memory_retrieve_posts_retrieve():
     out = await daemon_client.memory_retrieve("a1", "what did I say")
     call = _last()
