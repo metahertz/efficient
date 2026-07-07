@@ -71,29 +71,33 @@ async def test_optimize_defaults():
 
 
 async def test_codebase_index_posts_index():
-    await daemon_client.codebase_index("r1", "/workspace")
+    out = await daemon_client.codebase_index("r1", "/workspace")
     call = _last()
     assert call["path"] == "/codebase/index"
     assert call["json"] == {"repo_id": "r1", "path": "/workspace"}
+    assert out == {"echoed": "/codebase/index"}
 
 
 async def test_codebase_query_posts_query():
-    await daemon_client.codebase_query("find add", "r1", k=3)
+    out = await daemon_client.codebase_query("find add", "r1", k=3)
     call = _last()
     assert call["path"] == "/codebase/query"
     assert call["json"] == {"repo_id": "r1", "query": "find add", "k": 3}
+    assert out == {"echoed": "/codebase/query"}
 
 
 async def test_memory_retrieve_posts_retrieve():
-    await daemon_client.memory_retrieve("a1", "what did I say")
+    out = await daemon_client.memory_retrieve("a1", "what did I say")
     call = _last()
     assert call["path"] == "/memory/retrieve"
     assert call["json"] == {"agent_id": "a1", "query": "what did I say"}
+    assert out == {"echoed": "/memory/retrieve"}
 
 
 async def test_memory_store_posts_store():
-    await daemon_client.memory_store("a1", "s1", "turn text", "response text")
+    out = await daemon_client.memory_store("a1", "s1", "turn text", "response text")
     call = _last()
     assert call["path"] == "/memory/store"
     assert call["json"] == {"agent_id": "a1", "session_id": "s1",
                             "turn": "turn text", "response": "response text"}
+    assert out == {"echoed": "/memory/store"}
