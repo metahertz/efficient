@@ -43,3 +43,15 @@ async def test_codebase_query_defaults_are_safe(client):
     data = resp.json()
     assert data["repo_id"] == "default"
     assert isinstance(data["results"], list)
+
+
+@pytest.mark.parametrize("body,expected_repo", [
+    ({"repo_id": "r3", "path": "/nope/does/not/exist"}, "r3"),
+    ({"repo_id": "r4", "path": ""}, "r4"),
+    ({"repo_id": "r5"}, "r5"),
+])
+async def test_codebase_index_missing_path_returns_zero(client, body, expected_repo):
+    resp = await client.post("/codebase/index", json=body)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data == {"repo_id": expected_repo, "indexed_files": 0, "indexed_symbols": 0}

@@ -236,6 +236,8 @@ async def codebase_index(body: dict):
     from finops.modules.codebase_graph import CodebaseGraph
     graph = CodebaseGraph(db, cg_cfg)
     root = Path(path)
+    if not path or not root.is_dir():
+        return {"repo_id": repo_id, "indexed_files": 0, "indexed_symbols": 0}
     files = 0
     symbols = 0
     for py in root.rglob("*.py"):
