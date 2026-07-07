@@ -137,6 +137,33 @@ async def test_pipeline_composes_both_augmenters(finops_db):
     assert len(result["module_results"]) == 2
 
 
+async def test_optimize_persists_module_events(client, finops_db, monkeypatch):
+    from finops.db.collections import REQUEST_LOG
+
+    class _FakePipeline:
+        def __init__(self, *a, **kw):
+            pass
+        async def run(self, request):
+            return {
+                "optimized_prompt": request.prompt,
+                "optimized_context": "ctx",
+                "cache_hit": False,
+                "strategy": "compose_then_compress",
+                "tokens_saved": 100,
+                "module_results": [
+                    {"module": "codebase_graph", "tokens_in": 0, "tokens_out": 0,
+                     "tokens_saved": 100, "tokens_added": 20, "baseline_tokens": 120,
+                     "latency_ms": 1.0, "detail": "x"},
+                ],
+            }
+
+    monkeypatch.setattr("finops.daemon.router.ModulePipeline", _FakePipeline)
+    resp = await client.post("/optimize", json={"prompt": "p", "context": "c", "agent_id": "a1", "framework": "test"})
+    assert resp.status_code == 200
+    count = await finops_db[REQUEST_LOG].count_documents({"module": "codebase_graph"})
+    assert count == 1
+
+
 async def test_optimize_logs_module_events(client, finops_db):
     from finops.daemon.config import save_config
     # All modules disabled → module_results empty → record_module_events no-ops.

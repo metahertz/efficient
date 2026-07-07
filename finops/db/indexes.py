@@ -88,5 +88,5 @@ def create_all_indexes(db: Database) -> None:
     col.create_index([("started_at", ASCENDING)])
 
     col = db[REQUEST_LOG]
-    col.create_index([("created_at", ASCENDING)])
+    col.create_index("created_at", expireAfterSeconds=7776000)
     col.create_index([("module", ASCENDING), ("created_at", ASCENDING)])
