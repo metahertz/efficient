@@ -42,6 +42,9 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="fullFinOps-AI Daemon", lifespan=lifespan)
 
+from finops.daemon.dashboard_routes import router as dashboard_router
+app.include_router(dashboard_router)
+
 
 @app.get("/health")
 async def health():

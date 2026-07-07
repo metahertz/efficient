@@ -226,7 +226,11 @@ async function searchMemory() {
     if (!res.ok) throw new Error("POST /memory/retrieve -> " + res.status);
     renderMemory(await res.json());
   } catch (e) {
-    box.innerHTML = '<p class="error">Memory retrieval failed: ' + e.message + "</p>";
+    box.innerHTML = "";
+    const p = document.createElement("p");
+    p.className = "error";
+    p.textContent = "Memory retrieval failed: " + e.message;
+    box.appendChild(p);
   } finally {
     btn.disabled = false;
   }

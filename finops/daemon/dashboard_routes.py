@@ -1,14 +1,14 @@
 from pathlib import Path
 from fastapi import APIRouter
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse
 
 router = APIRouter()
 _DASH = Path(__file__).resolve().parent.parent.parent / "dashboard"
 
 
-@router.get("/dashboard", response_class=HTMLResponse)
+@router.get("/dashboard")
 async def dashboard_index():
-    return (_DASH / "index.html").read_text()
+    return FileResponse(_DASH / "index.html", media_type="text/html")
 
 
 @router.get("/dashboard/app.js")
