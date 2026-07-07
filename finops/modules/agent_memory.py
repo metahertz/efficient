@@ -157,7 +157,7 @@ class AgentMemory(BaseModule):
                 return []
             model = self._fact_model or "claude-haiku-4-5-20251001"
             llm = ChatAnthropic(model=model, api_key=os.getenv("ANTHROPIC_API_KEY", ""), max_tokens=256)
-            raw = llm.invoke(prompt).content
+            raw = llm.invoke(prompt).content or ""
         elif provider == "local":
             if not self._fact_base_url or not self._fact_model:
                 return []
