@@ -10,6 +10,19 @@ EMBEDDING_DIMENSIONS = 1024
 VECTOR_SIMILARITY    = "cosine"
 
 
+_ALL_COLLECTIONS = (
+    CODEBASE_NODES, CACHE_ENTRIES, WORKING_MEMORY, EPISODIC_MEMORY,
+    SEMANTIC_MEMORY, COMPRESSION_STATS, CORPUS_CHUNKS, BENCHMARK_RUNS,
+)
+
+
+def _ensure_collections(db: Database) -> None:
+    existing = set(db.list_collection_names())
+    for name in _ALL_COLLECTIONS:
+        if name not in existing:
+            db.create_collection(name)
+
+
 def _search_index_exists(collection, name: str) -> bool:
     return any(idx["name"] == name for idx in collection.list_search_indexes())
 
@@ -36,6 +49,8 @@ def _create_vector_index(
 
 
 def create_all_indexes(db: Database) -> None:
+    _ensure_collections(db)
+
     col = db[CODEBASE_NODES]
     col.create_index([("repo_id", ASCENDING), ("symbol", ASCENDING)])
     col.create_index([("repo_id", ASCENDING), ("file_path", ASCENDING)])

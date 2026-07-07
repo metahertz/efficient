@@ -155,7 +155,7 @@ async def cache_lookup(prompt_hash: str, embedding: list[float] | None = None):
         await db[CACHE_ENTRIES].update_one({"_id": entry["_id"]}, {"$inc": {"hit_count": 1}, "$set": {"last_hit_at": datetime.now(timezone.utc)}})
         return {"hit": True, "response": entry["response"], "similarity_score": 1.0}
     if embedding:
-        threshold = cache_cfg.get("similarity_threshold", 0.92)
+        threshold = cache_cfg.get("similarity_threshold", 0.80)
         pipeline = [
             {
                 "$vectorSearch": {

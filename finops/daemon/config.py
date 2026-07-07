@@ -7,7 +7,7 @@ DEFAULT_CONFIG: dict = {
     "_id": "global",
     "modules": {
         "codebase_graph":    {"enabled": True,  "repo_paths": []},
-        "semantic_cache":    {"enabled": True,  "similarity_threshold": 0.92, "ttl_hours": 168},
+        "semantic_cache":    {"enabled": True,  "similarity_threshold": 0.80, "ttl_hours": 168},
         "agent_memory":      {"enabled": True,  "working_memory_turns": 20,
                               "episodic_ttl_days": 30, "semantic_ttl_days": 90},
         "context_compressor":{"enabled": True,  "token_threshold": 8000, "target_ratio": 4.0},

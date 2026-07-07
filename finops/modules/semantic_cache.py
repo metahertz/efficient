@@ -16,7 +16,7 @@ class SemanticCache(BaseModule):
     def __init__(self, db: AsyncIOMotorDatabase, config: dict):
         super().__init__()
         self._db = db
-        self._threshold = config.get("similarity_threshold", 0.92)
+        self._threshold = config.get("similarity_threshold", 0.80)
         self._ttl_hours = config.get("ttl_hours", 168)
         self._cache_key = config.get("cache_key", "prompt+scope")
 
