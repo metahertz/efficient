@@ -48,6 +48,19 @@ services:
       mongodb:
         condition: service_healthy
 
+  mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+    command: python -m finops.mcp.server
+    environment:
+      - FINOPS_DAEMON_URL=http://daemon:7432
+    volumes:
+      - .:/workspace
+    depends_on:
+      - daemon
+
 volumes:
   mongodb_data:
   hf_cache:
