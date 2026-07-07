@@ -81,6 +81,37 @@ decisions taken to make the optimizer genuinely functional (not merely mock-test
 
 ---
 
+## Revision 3 (2026-07-07) — Claude Code MCP Server (Plan 4, pulled forward)
+
+Supersedes the "Claude Code MCP" row of the Plugin Layer table (which specified TypeScript).
+
+- **Language/runtime: Python, dockerized.** The MCP server is `finops/mcp/server.py`
+  built on the Python MCP SDK (`mcp` dependency), running inside the existing
+  container — no Node toolchain. Chosen for consistency with the all-in-containers
+  constraint and to reuse the daemon HTTP-client patterns.
+- **Transport & launch.** stdio transport. Claude Code launches it on demand via
+  `docker compose run --rm -T mcp` (a new `mcp` compose service). The daemon runs
+  continuously (`docker compose up -d daemon`). The MCP reads `FINOPS_DAEMON_URL`
+  (default `http://daemon:7432`) to reach the daemon on the compose network.
+- **stdout discipline.** stdout is the MCP protocol channel; ALL logging goes to
+  stderr. Any stray stdout write corrupts the protocol.
+- **Tools (v1)** — thin HTTP calls to the daemon:
+  - `optimize_context(prompt, context, agent_id?, corpus_id?, strategy?)` → `POST /optimize`
+  - `lookup_symbol(query, repo_id, k?)` → `POST /codebase/query` (new endpoint)
+  - `retrieve_memory(agent_id, query)` → `POST /memory/retrieve`
+  - `store_memory(agent_id, session_id, turn, response)` → `POST /memory/store`
+  - `cache_lookup(prompt)` → `GET /cache/lookup`
+- **New daemon endpoints** (expose the existing `CodebaseGraph` module over HTTP):
+  - `POST /codebase/index { repo_id, path }` — walk a mounted path, index `.py` files.
+  - `POST /codebase/query { repo_id, query, k? }` — vector symbol/NL lookup → code slices.
+- **Deployment.** The `daemon` service image carries the `transformers>=4.54,<4.58`
+  pin (voyage-4-nano compatibility). Ship a `claude mcp add` / settings snippet.
+- **Dependency note.** voyage-4-nano's custom model code requires `transformers` in
+  `[4.54, 4.58)` (needs `masking_utils.create_causal_mask(input_embeds=...)` and
+  `transformers.utils.TransformersKwargs`; 5.x renamed the param to `inputs_embeds`).
+
+---
+
 ## Architecture
 
 ```
