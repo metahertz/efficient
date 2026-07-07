@@ -1,0 +1,45 @@
+import pytest
+from httpx import AsyncClient, ASGITransport
+from finops.daemon.app import app
+
+FIXED_EMBEDDING = [0.1] * 1024
+
+
+@pytest.fixture(autouse=True)
+def mock_embed(monkeypatch):
+    monkeypatch.setattr("finops.modules.codebase_graph.embed_query", lambda t: FIXED_EMBEDDING)
+    monkeypatch.setattr("finops.modules.codebase_graph.embed_documents", lambda ts: [FIXED_EMBEDDING] * len(ts))
+
+
+@pytest.fixture
+async def client(finops_db):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        yield c
+
+
+async def test_codebase_index_indexes_fixture_dir(client):
+    resp = await client.post("/codebase/index", json={"repo_id": "r1", "path": "tests/fixtures"})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["repo_id"] == "r1"
+    assert data["indexed_files"] >= 1
+    assert data["indexed_symbols"] > 0
+
+
+async def test_codebase_query_returns_results_shape(client):
+    await client.post("/codebase/index", json={"repo_id": "r2", "path": "tests/fixtures"})
+    resp = await client.post("/codebase/query", json={"repo_id": "r2", "query": "add two numbers", "k": 3})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["repo_id"] == "r2"
+    assert isinstance(data["results"], list)
+    for r in data["results"]:
+        assert set(r.keys()) == {"symbol", "type", "file_path", "line_start", "line_end", "source_snippet"}
+
+
+async def test_codebase_query_defaults_are_safe(client):
+    resp = await client.post("/codebase/query", json={})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["repo_id"] == "default"
+    assert isinstance(data["results"], list)

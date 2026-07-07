@@ -225,6 +225,50 @@ async def memory_store(body: dict):
     return {"stored": True}
 
 
+@app.post("/codebase/index")
+async def codebase_index(body: dict):
+    from pathlib import Path
+    repo_id = body.get("repo_id", "default")
+    path = body.get("path", "")
+    db = get_async_db()
+    config = await load_config(db)
+    cg_cfg = config.get("modules", {}).get("codebase_graph", {})
+    from finops.modules.codebase_graph import CodebaseGraph
+    graph = CodebaseGraph(db, cg_cfg)
+    root = Path(path)
+    files = 0
+    symbols = 0
+    for py in root.rglob("*.py"):
+        try:
+            source = py.read_text(encoding="utf-8")
+        except Exception:
+            continue
+        n = await graph.index_file(repo_id, str(py.relative_to(root)), source)
+        if n:
+            files += 1
+            symbols += n
+    return {"repo_id": repo_id, "indexed_files": files, "indexed_symbols": symbols}
+
+
+@app.post("/codebase/query")
+async def codebase_query(body: dict):
+    repo_id = body.get("repo_id", "default")
+    query = body.get("query", "")
+    k = int(body.get("k", 5))
+    db = get_async_db()
+    config = await load_config(db)
+    cg_cfg = config.get("modules", {}).get("codebase_graph", {})
+    from finops.modules.codebase_graph import CodebaseGraph
+    graph = CodebaseGraph(db, cg_cfg)
+    results = await graph.query(repo_id, query, k)
+    out = [{
+        "symbol": r.get("symbol"), "type": r.get("type"),
+        "file_path": r.get("file_path"), "line_start": r.get("line_start"),
+        "line_end": r.get("line_end"), "source_snippet": r.get("source_snippet"),
+    } for r in results]
+    return {"repo_id": repo_id, "results": out}
+
+
 @app.get("/metrics")
 async def get_metrics():
     from finops.daemon.metrics import aggregate_metrics
