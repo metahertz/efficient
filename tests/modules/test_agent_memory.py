@@ -72,3 +72,48 @@ async def test_working_memory_respects_turn_limit(memory, finops_db):
         await memory.store_turn("a2", "s2", f"turn {i}", f"resp {i}")
     working = await memory._get_working_memory("a2")
     assert len(working) <= 6
+
+
+async def test_fact_extraction_off_stores_no_facts(finops_db, config):
+    mem = AgentMemory(finops_db, {**config, "fact_extraction": {"provider": "off"}})
+    await mem.store_turn("a3", "s3", "I use Python", "Great choice")
+    count = await finops_db[SEMANTIC_MEMORY].count_documents({"agent_id": "a3"})
+    assert count == 0
+    # working memory is still written
+    doc = await finops_db[WORKING_MEMORY].find_one({"agent_id": "a3", "session_id": "s3"})
+    assert doc is not None
+    assert len(doc["messages"]) == 2
+
+
+async def test_fact_extraction_local_uses_openai_endpoint(finops_db, config, monkeypatch):
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+
+    def _no_anthropic(**kw):
+        raise AssertionError("ChatAnthropic must not be called for local provider")
+
+    monkeypatch.setattr("finops.modules.agent_memory.ChatAnthropic", _no_anthropic)
+
+    fake_message = MagicMock(content="user likes Rust\nuses cargo")
+    fake_choice = MagicMock(message=fake_message)
+    fake_resp = MagicMock(choices=[fake_choice])
+    fake_client = MagicMock()
+    fake_client.chat.completions.create.return_value = fake_resp
+    monkeypatch.setattr("finops.modules.agent_memory.OpenAI", lambda **kw: fake_client)
+
+    mem = AgentMemory(finops_db, {**config, "fact_extraction": {
+        "provider": "local",
+        "base_url": "http://ollama:11434/v1",
+        "model": "qwen3:30b-a3b",
+    }})
+    await mem.store_turn("a4", "s4", "I like Rust", "Nice")
+    count = await finops_db[SEMANTIC_MEMORY].count_documents({"agent_id": "a4"})
+    assert count >= 1
+    assert fake_client.chat.completions.create.called
+
+
+async def test_fact_extraction_anthropic_no_key_off(finops_db, config, monkeypatch):
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    mem = AgentMemory(finops_db, config)  # provider defaults to anthropic
+    await mem.store_turn("a5", "s5", "I use Python", "Great choice")
+    count = await finops_db[SEMANTIC_MEMORY].count_documents({"agent_id": "a5"})
+    assert count == 0

@@ -3,6 +3,7 @@ import time
 from datetime import datetime, timezone, timedelta
 
 from langchain_anthropic import ChatAnthropic
+from openai import OpenAI
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from finops.modules._base import BaseModule, OptimizeRequest, ModuleResult
@@ -32,6 +33,10 @@ class AgentMemory(BaseModule):
         self._working_turns = config.get("working_memory_turns", 20)
         self._episodic_ttl = config.get("episodic_ttl_days", 30)
         self._semantic_ttl = config.get("semantic_ttl_days", 90)
+        fe = config.get("fact_extraction", {})
+        self._fact_provider = fe.get("provider", "anthropic")
+        self._fact_base_url = fe.get("base_url", "")
+        self._fact_model = fe.get("model", "")
 
     def is_enabled(self) -> bool:
         return True
@@ -141,19 +146,37 @@ class AgentMemory(BaseModule):
             results.append(doc["fact"])
         return results
 
+    def _extract_facts(self, turn: str, response: str) -> list[str]:
+        provider = self._fact_provider
+        if provider == "off":
+            return []
+        prompt = _FACT_PROMPT.format(turn=turn, response=response)
+        raw = ""
+        if provider == "anthropic":
+            if not os.getenv("ANTHROPIC_API_KEY"):
+                return []
+            model = self._fact_model or "claude-haiku-4-5-20251001"
+            llm = ChatAnthropic(model=model, api_key=os.getenv("ANTHROPIC_API_KEY", ""), max_tokens=256)
+            raw = llm.invoke(prompt).content
+        elif provider == "local":
+            if not self._fact_base_url or not self._fact_model:
+                return []
+            client = OpenAI(base_url=self._fact_base_url, api_key=os.getenv("OPENAI_API_KEY", "not-needed"))
+            resp = client.chat.completions.create(
+                model=self._fact_model,
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=256,
+            )
+            raw = resp.choices[0].message.content or ""
+        else:
+            return []
+        raw = raw.strip()
+        return [f.strip() for f in raw.splitlines() if f.strip()]
+
     async def _extract_and_store_facts(self, agent_id: str, turn: str, response: str) -> None:
-        if not os.getenv("ANTHROPIC_API_KEY"):
+        facts = self._extract_facts(turn, response)
+        if not facts:
             return
-        llm = ChatAnthropic(
-            model="claude-haiku-4-5-20251001",
-            api_key=os.getenv("ANTHROPIC_API_KEY", ""),
-            max_tokens=256,
-        )
-        result = llm.invoke(_FACT_PROMPT.format(turn=turn, response=response))
-        raw = result.content.strip()
-        if not raw:
-            return
-        facts = [f.strip() for f in raw.splitlines() if f.strip()]
         fact_embeddings = embed_documents(facts)
         now = datetime.now(timezone.utc)
         expires_at = now + timedelta(days=self._semantic_ttl)
