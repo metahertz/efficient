@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>fullFinOps-AI</title>
+  <link rel="stylesheet" href="/dashboard/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">fullFinOps-AI</span>
+      <span id="status-dot" class="dot dot-unknown" title="daemon status"></span>
+      <span id="status-text" class="status-text">connecting&hellip;</span>
+    </div>
+    <div class="strategy">
+      strategy: <span id="strategy">&ndash;</span>
+      <span class="sep">|</span>
+      model: <span id="embedding-model">&ndash;</span>
+    </div>
+  </header>
+
+  <main class="grid">
+    <section class="card" id="panel-tokens">
+      <h2>Tokens Saved</h2>
+      <div class="stat-row">
+        <div class="stat">
+          <div class="stat-value" id="total-tokens">&ndash;</div>
+          <div class="stat-label">total tokens saved</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="dollars-saved">&ndash;</div>
+          <div class="stat-label">est. $ saved</div>
+        </div>
+      </div>
+      <div class="stat-row">
+        <div class="stat">
+          <div class="stat-value" id="cache-hit-rate">&ndash;</div>
+          <div class="stat-label">cache hit rate</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="compression-ratio">&ndash;</div>
+          <div class="stat-label">compression ratio</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" id="panel-modules">
+      <h2>Per-Module Breakdown</h2>
+      <ul id="module-list" class="module-list">
+        <li class="muted">loading&hellip;</li>
+      </ul>
+    </section>
+
+    <section class="card" id="panel-memory">
+      <h2>Memory Explorer</h2>
+      <div class="memory-form">
+        <label>agent id
+          <input type="text" id="agent-id" value="default">
+        </label>
+        <label>query
+          <input type="text" id="memory-query" placeholder="search memory&hellip;">
+        </label>
+        <button id="memory-search">Search</button>
+      </div>
+      <div id="memory-results" class="memory-results">
+        <p class="muted">Enter a query and click Search.</p>
+      </div>
+    </section>
+
+    <section class="card" id="panel-benchmark">
+      <h2>Benchmark</h2>
+      <p class="muted">
+        The benchmark runner is not yet available. The backend for this
+        feature is pending (Plan 3). This panel will light up once the
+        benchmark endpoint ships.
+      </p>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span id="last-updated" class="muted">not yet updated</span>
+  </footer>
+
+  <script src="/dashboard/app.js"></script>
+</body>
+</html>
