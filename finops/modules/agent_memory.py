@@ -8,6 +8,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from finops.modules._base import BaseModule, OptimizeRequest, ModuleResult
 from finops.modules.embeddings import embed_query, embed_documents
 from finops.db.collections import WORKING_MEMORY, EPISODIC_MEMORY, SEMANTIC_MEMORY
+from finops.db.vector import vector_search
 
 _FACT_PROMPT = (
     "Extract factual statements from this conversation. "
@@ -117,7 +118,7 @@ class AgentMemory(BaseModule):
             },
         ]
         results = []
-        async for doc in self._db[EPISODIC_MEMORY].aggregate(pipeline):
+        for doc in await vector_search(self._db[EPISODIC_MEMORY], pipeline):
             results.append(doc["content"])
         return results
 
@@ -136,7 +137,7 @@ class AgentMemory(BaseModule):
             },
         ]
         results = []
-        async for doc in self._db[SEMANTIC_MEMORY].aggregate(pipeline):
+        for doc in await vector_search(self._db[SEMANTIC_MEMORY], pipeline):
             results.append(doc["fact"])
         return results
 
@@ -172,7 +173,7 @@ class AgentMemory(BaseModule):
                 {"$match": {"_score": {"$gte": _DEDUP_THRESHOLD}}},
             ]
             existing = None
-            async for doc in self._db[SEMANTIC_MEMORY].aggregate(dedup_pipeline):
+            for doc in await vector_search(self._db[SEMANTIC_MEMORY], dedup_pipeline):
                 existing = doc
                 break
             if existing:

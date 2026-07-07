@@ -9,6 +9,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from finops.modules._base import BaseModule, OptimizeRequest, ModuleResult
 from finops.modules.embeddings import embed_query, embed_documents
 from finops.db.collections import CODEBASE_NODES
+from finops.db.vector import vector_search
 
 _PY_LANGUAGE = Language(tspython.language())
 _PARSER = Parser(_PY_LANGUAGE)
@@ -147,7 +148,7 @@ class CodebaseGraph(BaseModule):
             {"$project": {"embedding": 0}},
         ]
         results = []
-        async for doc in self._db[CODEBASE_NODES].aggregate(pipeline):
+        for doc in await vector_search(self._db[CODEBASE_NODES], pipeline):
             results.append(doc)
         return results
 

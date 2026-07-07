@@ -7,6 +7,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from finops.modules._base import BaseModule, OptimizeRequest, ModuleResult
 from finops.modules.embeddings import embed_query, embed_documents
 from finops.db.collections import CACHE_ENTRIES
+from finops.db.vector import vector_search
 
 
 class SemanticCache(BaseModule):
@@ -76,7 +77,7 @@ class SemanticCache(BaseModule):
             {"$addFields": {"_score": {"$meta": "vectorSearchScore"}}},
             {"$match": {"_score": {"$gte": self._threshold}}},
         ]
-        async for doc in self._db[CACHE_ENTRIES].aggregate(pipeline):
+        for doc in await vector_search(self._db[CACHE_ENTRIES], pipeline):
             await self._db[CACHE_ENTRIES].update_one(
                 {"_id": doc["_id"]},
                 {"$inc": {"hit_count": 1}, "$set": {"last_hit_at": datetime.now(timezone.utc)}},

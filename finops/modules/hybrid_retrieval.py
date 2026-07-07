@@ -6,6 +6,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from finops.modules._base import BaseModule, OptimizeRequest, ModuleResult
 from finops.modules.embeddings import embed_query, embed_documents
 from finops.db.collections import CORPUS_CHUNKS
+from finops.db.vector import vector_search
 
 
 def _count_tokens(text: str) -> int:
@@ -117,7 +118,7 @@ class HybridRetrieval(BaseModule):
             {"$project": {"embedding": 0}},
         ]
         results = []
-        async for doc in self._db[CORPUS_CHUNKS].aggregate(pipeline):
+        for doc in await vector_search(self._db[CORPUS_CHUNKS], pipeline):
             results.append(doc)
         return results
 

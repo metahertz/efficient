@@ -5,6 +5,7 @@ from finops.db.client import get_async_db, get_sync_db
 from finops.db.indexes import create_all_indexes
 from finops.daemon.config import load_config, save_config
 from finops.db.collections import CACHE_ENTRIES
+from finops.db.vector import vector_search
 from finops.daemon.strategies import get_strategy
 from finops.modules._base import OptimizeRequest
 
@@ -168,7 +169,7 @@ async def cache_lookup(prompt_hash: str, embedding: list[float] | None = None):
             {"$addFields": {"_score": {"$meta": "vectorSearchScore"}}},
             {"$match": {"_score": {"$gte": threshold}}},
         ]
-        async for doc in db[CACHE_ENTRIES].aggregate(pipeline):
+        for doc in await vector_search(db[CACHE_ENTRIES], pipeline):
             await db[CACHE_ENTRIES].update_one({"_id": doc["_id"]}, {"$inc": {"hit_count": 1}, "$set": {"last_hit_at": datetime.now(timezone.utc)}})
             return {"hit": True, "response": doc["response"], "similarity_score": doc["_score"]}
     return {"hit": False, "response": None, "similarity_score": 0.0}
