@@ -15,6 +15,7 @@ def mock_embed(monkeypatch):
 
 @pytest.fixture(autouse=True)
 def mock_llm(monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
     fake_llm = MagicMock()
     fake_llm.invoke.return_value = MagicMock(content="user prefers Python\nproject uses FastAPI")
     monkeypatch.setattr("finops.modules.agent_memory.ChatAnthropic", lambda **kw: fake_llm)

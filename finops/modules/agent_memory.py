@@ -141,6 +141,8 @@ class AgentMemory(BaseModule):
         return results
 
     async def _extract_and_store_facts(self, agent_id: str, turn: str, response: str) -> None:
+        if not os.getenv("ANTHROPIC_API_KEY"):
+            return
         llm = ChatAnthropic(
             model="claude-haiku-4-5-20251001",
             api_key=os.getenv("ANTHROPIC_API_KEY", ""),
