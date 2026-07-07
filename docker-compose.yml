@@ -12,6 +12,21 @@ services:
       retries: 10
       start_period: 30s
 
+  # Isolated MongoDB for the test harness — keeps test index churn off the
+  # daemon's production mongot so wedged/rebuilding indexes can't cross-contaminate.
+  mongodb-test:
+    image: mongodb/mongodb-atlas-local:latest
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongodb_test_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.runCommand('ping').ok"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
   dev:
     build:
       context: .
@@ -25,10 +40,12 @@ services:
     environment:
       - FINOPS_MONGODB_URI=mongodb://mongodb:27017
       - FINOPS_DB_NAME=finops
-      - FINOPS_TEST_MONGODB_URI=mongodb://mongodb:27017
+      - FINOPS_TEST_MONGODB_URI=mongodb://mongodb-test:27017
       - HF_HOME=/root/.cache/huggingface
     depends_on:
       mongodb:
+        condition: service_healthy
+      mongodb-test:
         condition: service_healthy
 
   daemon:
@@ -63,4 +80,5 @@ services:
 
 volumes:
   mongodb_data:
+  mongodb_test_data:
   hf_cache:
