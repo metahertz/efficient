@@ -27,6 +27,7 @@ dependencies = [
     "datasets>=2.20",
     "anthropic>=0.40",
     "openai>=1.0",
+    "mcp>=1.2",
 ]
 
 [project.optional-dependencies]
