@@ -82,7 +82,10 @@ async def post_optimize(body: dict):
         framework=body.get("framework", "unknown"),
         corpus_id=body.get("corpus_id"),
     )
-    return await pipeline.run(request)
+    result = await pipeline.run(request)
+    from finops.daemon.metrics import record_module_events
+    await record_module_events(db, result["module_results"])
+    return result
 
 
 @app.post("/complete")
@@ -100,6 +103,8 @@ async def post_complete(body: dict):
         corpus_id=body.get("corpus_id"),
     )
     optimized = await pipeline.run(request)
+    from finops.daemon.metrics import record_module_events
+    await record_module_events(db, optimized["module_results"])
 
     if optimized["cache_hit"]:
         return {

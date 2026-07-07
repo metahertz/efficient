@@ -3,7 +3,7 @@ from pymongo.database import Database
 from finops.db.collections import (
     CODEBASE_NODES, CACHE_ENTRIES, WORKING_MEMORY,
     EPISODIC_MEMORY, SEMANTIC_MEMORY, CORPUS_CHUNKS,
-    COMPRESSION_STATS, BENCHMARK_RUNS,
+    COMPRESSION_STATS, BENCHMARK_RUNS, REQUEST_LOG,
 )
 
 EMBEDDING_DIMENSIONS = 1024
@@ -13,6 +13,7 @@ VECTOR_SIMILARITY    = "cosine"
 _ALL_COLLECTIONS = (
     CODEBASE_NODES, CACHE_ENTRIES, WORKING_MEMORY, EPISODIC_MEMORY,
     SEMANTIC_MEMORY, COMPRESSION_STATS, CORPUS_CHUNKS, BENCHMARK_RUNS,
+    REQUEST_LOG,
 )
 
 
@@ -85,3 +86,7 @@ def create_all_indexes(db: Database) -> None:
 
     col = db[BENCHMARK_RUNS]
     col.create_index([("started_at", ASCENDING)])
+
+    col = db[REQUEST_LOG]
+    col.create_index([("created_at", ASCENDING)])
+    col.create_index([("module", ASCENDING), ("created_at", ASCENDING)])

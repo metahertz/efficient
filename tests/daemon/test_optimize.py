@@ -4,6 +4,7 @@ from httpx import AsyncClient, ASGITransport
 from finops.daemon.app import app
 from finops.modules._base import OptimizeRequest, ModuleResult
 from finops.daemon.strategies import COMPOSE_THEN_COMPRESS, Strategy
+from finops.db.collections import REQUEST_LOG
 
 
 def _make_append_module(name, section_label):
@@ -134,3 +135,21 @@ async def test_pipeline_composes_both_augmenters(finops_db):
     assert "## Memory" in ctx
     assert result["cache_hit"] is False
     assert len(result["module_results"]) == 2
+
+
+async def test_optimize_logs_module_events(client, finops_db):
+    from finops.daemon.config import save_config
+    # All modules disabled → module_results empty → record_module_events no-ops.
+    await save_config(finops_db, {"modules": {
+        "codebase_graph": {"enabled": False}, "semantic_cache": {"enabled": False},
+        "agent_memory": {"enabled": False}, "context_compressor": {"enabled": False},
+        "hybrid_retrieval": {"enabled": False},
+    }})
+    resp = await client.post("/optimize", json={
+        "prompt": "What is Python?", "context": "some context",
+        "agent_id": "a1", "framework": "test",
+    })
+    assert resp.status_code == 200
+    assert resp.json()["module_results"] == []
+    # No module ran, so request_log stays empty (wiring path must not crash).
+    assert await finops_db[REQUEST_LOG].count_documents({}) == 0
