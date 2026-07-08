@@ -136,3 +136,16 @@ async def test_callers_empty_for_unreferenced(graph, graph_source):
     await graph.index_file("grepo", "graph_sample.py", graph_source)
     callers = await graph.callers("grepo", "main")
     assert callers == []
+
+
+async def test_clear_repo_removes_all_repo_symbols(graph, finops_db):
+    await graph.index_file("cr1", "a.py", "def func_a():\n    return 1\n")
+    await graph.index_file("cr1", "b.py", "def func_b():\n    return 2\n")
+    count = await finops_db[CODEBASE_NODES].count_documents({"repo_id": "cr1"})
+    assert count >= 2
+    deleted = await graph.clear_repo("cr1")
+    assert deleted >= 2
+    count_after = await finops_db[CODEBASE_NODES].count_documents({"repo_id": "cr1"})
+    assert count_after == 0
+    empty_deleted = await graph.clear_repo("cr1")
+    assert empty_deleted == 0

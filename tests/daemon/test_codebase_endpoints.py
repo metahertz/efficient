@@ -86,3 +86,25 @@ async def test_codebase_references_endpoint(client):
     assert "main" in caller_symbols
     assert "run" in caller_symbols
     assert isinstance(data["callees"], list)
+
+
+async def test_full_reindex_drops_deleted_file(client, finops_db, tmp_path):
+    from finops.db.collections import CODEBASE_NODES
+    a = tmp_path / "a.py"
+    b = tmp_path / "b.py"
+    a.write_text("def func_alpha():\n    return 1\n")
+    b.write_text("def func_beta():\n    return 2\n")
+    resp = await client.post("/codebase/index", json={"repo_id": "tmpr", "path": str(tmp_path)})
+    assert resp.status_code == 200
+    assert resp.json()["indexed_symbols"] >= 2
+    alpha = await finops_db[CODEBASE_NODES].find_one({"repo_id": "tmpr", "symbol": "func_alpha"})
+    beta = await finops_db[CODEBASE_NODES].find_one({"repo_id": "tmpr", "symbol": "func_beta"})
+    assert alpha is not None
+    assert beta is not None
+    b.unlink()
+    resp2 = await client.post("/codebase/index", json={"repo_id": "tmpr", "path": str(tmp_path)})
+    assert resp2.status_code == 200
+    beta_gone = await finops_db[CODEBASE_NODES].find_one({"repo_id": "tmpr", "symbol": "func_beta"})
+    assert beta_gone is None
+    alpha_still = await finops_db[CODEBASE_NODES].find_one({"repo_id": "tmpr", "symbol": "func_alpha"})
+    assert alpha_still is not None

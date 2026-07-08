@@ -129,6 +129,10 @@ class CodebaseGraph(BaseModule):
             baseline_tokens=baseline_tokens,
         )
 
+    async def clear_repo(self, repo_id: str) -> int:
+        result = await self._db[CODEBASE_NODES].delete_many({"repo_id": repo_id})
+        return result.deleted_count
+
     async def index_file(self, repo_id: str, file_path: str, source: str) -> int:
         ext = Path(file_path).suffix
         extractor = _EXTRACTORS.get(ext)
