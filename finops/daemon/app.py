@@ -40,7 +40,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="fullFinOps-AI Daemon", lifespan=lifespan)
+app = FastAPI(title="efficient Daemon", lifespan=lifespan)
 
 from finops.daemon.dashboard_routes import router as dashboard_router
 app.include_router(dashboard_router)

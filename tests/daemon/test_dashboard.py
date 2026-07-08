@@ -15,7 +15,7 @@ async def client():
 async def test_dashboard_index_served(client):
     r = await client.get("/dashboard")
     assert r.status_code == 200
-    assert "fullFinOps-AI" in r.text
+    assert "efficient" in r.text
 
 
 async def test_dashboard_assets_served(client):

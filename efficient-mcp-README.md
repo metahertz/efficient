@@ -1,10 +1,10 @@
-# fullFinOps-AI — Claude Code MCP Server
+# efficient — Claude Code MCP Server
 
-The finops MCP server exposes the token-saving daemon to Claude Code as native tools:
-`optimize_context`, `index_codebase`, `lookup_symbol`, `retrieve_memory`, `store_memory`.
+The efficient MCP server exposes the token-saving daemon to Claude Code as native tools:
+`optimize_context`, `index_codebase`, `lookup_symbol`, `find_references`, `retrieve_memory`, `store_memory`.
 
 It is a Python (FastMCP) server that runs inside the project's Docker container over
-stdio and talks HTTP to the finops daemon. No Node toolchain is required.
+stdio and talks HTTP to the efficient daemon. No Node toolchain is required.
 
 ## Prerequisites
 
@@ -29,13 +29,13 @@ required for clean stdio JSON-RPC framing.
 
 ### Option A — `claude mcp add`
 
-    claude mcp add finops -- docker compose -f /Users/matt.johnson/ClaudeCodeRepo/fullFinOps-AI/docker-compose.yml run --rm -T mcp
+    claude mcp add efficient -- docker compose -f /Users/matt.johnson/ClaudeCodeRepo/fullFinOps-AI/docker-compose.yml run --rm -T mcp
 
 ### Option B — `~/.claude.json` (or the project's `.mcp.json`) snippet
 
     {
       "mcpServers": {
-        "finops": {
+        "efficient": {
           "command": "docker",
           "args": [
             "compose",

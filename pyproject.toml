@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "finops-ai"
+name = "efficient"
 version = "0.1.0"
 description = "Token-saving developer toolkit for AI frameworks"
 requires-python = ">=3.11"
@@ -41,7 +41,7 @@ hosted = [
 ]
 
 [project.scripts]
-finops = "finops.cli.main:cli"
+efficient = "finops.cli.main:cli"
 
 [tool.hatch.build.targets.wheel]
 packages = ["finops"]

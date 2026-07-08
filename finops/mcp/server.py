@@ -7,7 +7,7 @@ from finops.mcp import daemon_client
 
 logging.basicConfig(level=logging.INFO, stream=sys.stderr)
 
-mcp = FastMCP("finops")
+mcp = FastMCP("efficient")
 
 
 @mcp.tool()

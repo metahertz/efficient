@@ -40,4 +40,4 @@ def test_pyproject_settings():
     # Check required settings
     assert config['project']['requires-python'] == '>=3.11'
     assert config['tool']['pytest']['ini_options']['asyncio_mode'] == 'auto'
-    assert config['project']['scripts'].get('finops') == 'finops.cli.main:cli'
+    assert config['project']['scripts'].get('efficient') == 'finops.cli.main:cli'

@@ -16,18 +16,18 @@ PID_FILE = Path.home() / ".finops" / "daemon.pid"
 
 @click.group()
 def cli():
-    """fullFinOps-AI — token optimization toolkit."""
+    """efficient — token optimization toolkit."""
     pass
 
 
 @cli.command()
 def start():
-    """Start the finops daemon in the background."""
+    """Start the efficient daemon in the background."""
     if PID_FILE.exists():
         pid = int(PID_FILE.read_text().strip())
         try:
             os.kill(pid, 0)  # liveness check — raises if process is gone
-            click.echo("Daemon already running. Run 'finops stop' first.")
+            click.echo("Daemon already running. Run 'efficient stop' first.")
             return
         except ProcessLookupError:
             click.echo(f"Removing stale PID file (process {pid} is gone).")
@@ -45,7 +45,7 @@ def start():
 
 @cli.command()
 def stop():
-    """Stop the finops daemon."""
+    """Stop the efficient daemon."""
     if not PID_FILE.exists():
         click.echo("No daemon running.")
         return
