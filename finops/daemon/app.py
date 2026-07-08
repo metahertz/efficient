@@ -280,6 +280,20 @@ async def codebase_query(body: dict):
     return {"repo_id": repo_id, "results": out}
 
 
+@app.post("/codebase/index-file")
+async def codebase_index_file(body: dict):
+    repo_id = body.get("repo_id", "default")
+    file_path = body.get("file_path", "")
+    source = body.get("source", "")
+    db = get_async_db()
+    config = await load_config(db)
+    cg_cfg = config.get("modules", {}).get("codebase_graph", {})
+    from finops.modules.codebase_graph import CodebaseGraph
+    graph = CodebaseGraph(db, cg_cfg)
+    n = await graph.index_file(repo_id, file_path, source)
+    return {"repo_id": repo_id, "file_path": file_path, "indexed_symbols": n}
+
+
 @app.post("/codebase/references")
 async def codebase_references(body: dict):
     repo_id = body.get("repo_id", "default")

@@ -81,6 +81,36 @@ async def test_process_no_op_when_no_symbols_match(finops_db):
     assert result.tokens_saved == 0
 
 
+async def test_reindex_removes_deleted_symbols(graph, finops_db):
+    src_two = "def add(a, b):\n    return a + b\n\n\ndef multiply(a, b):\n    return a * b\n"
+    n1 = await graph.index_file("repo1", "f.py", src_two)
+    assert n1 == 2
+    src_one = "def add(a, b):\n    return a + b\n"
+    await graph.index_file("repo1", "f.py", src_one)
+    count = await finops_db[CODEBASE_NODES].count_documents({"repo_id": "repo1", "file_path": "f.py"})
+    assert count == 1
+    gone = await finops_db[CODEBASE_NODES].find_one({"repo_id": "repo1", "file_path": "f.py", "symbol": "multiply"})
+    assert gone is None
+
+
+async def test_reindex_no_duplicate_on_move(graph, finops_db):
+    src = "def add(a, b):\n    return a + b\n"
+    await graph.index_file("repo1", "f.py", src)
+    moved = "\n\n\n\ndef add(a, b):\n    return a + b\n"
+    await graph.index_file("repo1", "f.py", moved)
+    count = await finops_db[CODEBASE_NODES].count_documents({"repo_id": "repo1", "file_path": "f.py", "symbol": "add"})
+    assert count == 1
+
+
+async def test_reindex_empty_file_removes_symbols(graph, finops_db):
+    src = "def add(a, b):\n    return a + b\n"
+    await graph.index_file("repo1", "f.py", src)
+    n = await graph.index_file("repo1", "f.py", "")
+    assert n == 0
+    count = await finops_db[CODEBASE_NODES].count_documents({"repo_id": "repo1", "file_path": "f.py"})
+    assert count == 0
+
+
 async def test_index_populates_references(graph, finops_db, graph_source):
     await graph.index_file("grepo", "graph_sample.py", graph_source)
     doc = await finops_db[CODEBASE_NODES].find_one({"repo_id": "grepo", "symbol": "main"})

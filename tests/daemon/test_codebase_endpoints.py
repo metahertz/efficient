@@ -57,6 +57,24 @@ async def test_codebase_index_missing_path_returns_zero(client, body, expected_r
     assert data == {"repo_id": expected_repo, "indexed_files": 0, "indexed_symbols": 0}
 
 
+async def test_codebase_index_file_endpoint(client, finops_db):
+    from finops.db.collections import CODEBASE_NODES
+    resp = await client.post("/codebase/index-file", json={
+        "repo_id": "rif", "file_path": "x.py", "source": "def foo():\n    return 1\n"})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["repo_id"] == "rif"
+    assert data["file_path"] == "x.py"
+    assert data["indexed_symbols"] >= 1
+    resp2 = await client.post("/codebase/index-file", json={
+        "repo_id": "rif", "file_path": "x.py", "source": "# nothing here\n"})
+    assert resp2.status_code == 200
+    assert resp2.json()["indexed_symbols"] == 0
+    gone = await finops_db[CODEBASE_NODES].find_one(
+        {"repo_id": "rif", "file_path": "x.py", "symbol": "foo"})
+    assert gone is None
+
+
 async def test_codebase_references_endpoint(client):
     await client.post("/codebase/index", json={"repo_id": "rref", "path": "tests/fixtures"})
     resp = await client.post("/codebase/references", json={"repo_id": "rref", "symbol": "helper"})

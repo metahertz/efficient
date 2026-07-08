@@ -7,7 +7,7 @@ Claude Code at.
 ## Install
 ```bash
 mkdir -p <your-project>/.claude/hooks
-cp steer-large-reads.sh efficient-autoindex.sh <your-project>/.claude/hooks/
+cp steer-large-reads.sh efficient-autoindex.sh reindex-on-edit.sh <your-project>/.claude/hooks/
 chmod +x <your-project>/.claude/hooks/*.sh
 # merge settings.json into <your-project>/.claude/settings.json
 ```
@@ -32,9 +32,17 @@ then `docker compose up -d daemon`. Uses a fixed `repo_id: "project"` — use th
 same `repo_id` in your CLAUDE.md so `lookup_symbol(query, repo_id="project")`
 matches.
 
-## Keeping the graph fresh as you edit
-SessionStart indexing is a **snapshot at session start**. Files Claude edits
-mid-session are NOT reflected until the next session/re-index, and the current
-re-index is not incremental. For live freshness, add a PostToolUse re-index hook
-once the single-file index endpoint lands (see the repo backlog:
-"incremental codebase-graph updates").
+## Hook C — PostToolUse `reindex-on-edit.sh`
+Keeps the graph fresh as you edit. SessionStart indexing is only a **snapshot at
+session start**; this PostToolUse hook (matcher `Edit|Write|MultiEdit`) re-indexes
+each edited `.py` file the moment Claude changes it, so `lookup_symbol` and
+`find_references` stay accurate mid-session. It POSTs the file's current contents
+to `/codebase/index-file`, which does a clean per-file replace (deleted symbols
+are removed, moved symbols are not duplicated).
+
+**No mount needed** — unlike the SessionStart autoindex, this hook sends the file
+contents in the request body, so the daemon does not read from its own
+filesystem. Uses the same fixed `repo_id: "project"` (paths are sent relative to
+`$CLAUDE_PROJECT_DIR`). **Requires `jq` + the daemon running.** Currently handles
+`.py` files only (matches the codebase-graph extractor); extend the `case` in the
+script as more language extractors are added.

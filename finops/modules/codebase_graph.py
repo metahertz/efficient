@@ -134,18 +134,15 @@ class CodebaseGraph(BaseModule):
         extractor = _EXTRACTORS.get(ext)
         if not extractor:
             return 0
+        await self._db[CODEBASE_NODES].delete_many({"repo_id": repo_id, "file_path": file_path})
         symbols = extractor(source, file_path, repo_id)
         if not symbols:
             return 0
         snippets = [s["source_snippet"] for s in symbols]
         embeddings = embed_documents(snippets)
         now = datetime.now(timezone.utc)
-        for sym, emb in zip(symbols, embeddings):
-            await self._db[CODEBASE_NODES].update_one(
-                {"repo_id": repo_id, "file_path": file_path, "line_start": sym["line_start"]},
-                {"$set": {**sym, "embedding": emb, "indexed_at": now}},
-                upsert=True,
-            )
+        docs = [{**sym, "embedding": emb, "indexed_at": now} for sym, emb in zip(symbols, embeddings)]
+        await self._db[CODEBASE_NODES].insert_many(docs)
         return len(symbols)
 
     async def query(self, repo_id: str, query_text: str, k: int = 5) -> list[dict]:

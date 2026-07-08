@@ -12,6 +12,7 @@ def patch_client(monkeypatch):
         "memory_retrieve": AsyncMock(return_value={"tool": "memory_retrieve"}),
         "memory_store": AsyncMock(return_value={"tool": "memory_store"}),
         "codebase_references": AsyncMock(return_value={"tool": "codebase_references"}),
+        "codebase_index_file": AsyncMock(return_value={"tool": "codebase_index_file"}),
     }
     for name, mock in m.items():
         monkeypatch.setattr(server.daemon_client, name, mock)
@@ -54,8 +55,15 @@ async def test_find_references_delegates(patch_client):
     assert out == {"tool": "codebase_references"}
 
 
-async def test_all_six_tools_registered():
+async def test_reindex_file_delegates(patch_client):
+    out = await server.reindex_file("r1", "f.py", "src")
+    patch_client["codebase_index_file"].assert_awaited_once_with("r1", "f.py", "src")
+    assert out == {"tool": "codebase_index_file"}
+
+
+async def test_all_seven_tools_registered():
     tools = await server.mcp.list_tools()
     names = {t.name for t in tools}
     assert names == {"optimize_context", "index_codebase", "lookup_symbol",
-                     "retrieve_memory", "store_memory", "find_references"}
+                     "retrieve_memory", "store_memory", "find_references",
+                     "reindex_file"}

@@ -86,6 +86,14 @@ async def test_codebase_query_posts_query():
     assert out == {"echoed": "/codebase/query"}
 
 
+async def test_codebase_index_file_posts_index_file():
+    out = await daemon_client.codebase_index_file("r", "f.py", "src")
+    call = _last()
+    assert call["path"] == "/codebase/index-file"
+    assert call["json"] == {"repo_id": "r", "file_path": "f.py", "source": "src"}
+    assert out == {"echoed": "/codebase/index-file"}
+
+
 async def test_codebase_references_posts_references():
     out = await daemon_client.codebase_references("r", "s")
     call = _last()

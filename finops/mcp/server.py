@@ -47,6 +47,12 @@ async def find_references(repo_id: str, symbol: str) -> dict:
     return await daemon_client.codebase_references(repo_id, symbol)
 
 
+@mcp.tool()
+async def reindex_file(repo_id: str, file_path: str, source: str) -> dict:
+    """Re-index a single source file into the codebase graph after it changes; replaces that file's symbols so lookup_symbol and find_references stay accurate. Call after editing a file."""
+    return await daemon_client.codebase_index_file(repo_id, file_path, source)
+
+
 def main() -> None:
     mcp.run(transport="stdio")
 

@@ -28,6 +28,10 @@ async def codebase_query(query: str, repo_id: str, k: int = 5) -> dict:
     return await _post("/codebase/query", {"repo_id": repo_id, "query": query, "k": k})
 
 
+async def codebase_index_file(repo_id: str, file_path: str, source: str) -> dict:
+    return await _post("/codebase/index-file", {"repo_id": repo_id, "file_path": file_path, "source": source})
+
+
 async def codebase_references(repo_id: str, symbol: str) -> dict:
     return await _post("/codebase/references", {"repo_id": repo_id, "symbol": symbol})
 
