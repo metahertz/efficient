@@ -1,5 +1,23 @@
 {
   "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          { "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/efficient-autoindex.sh",
+            "async": true,
+            "statusMessage": "Indexing codebase into efficient…" }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          { "type": "command", "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/recall-memory.sh" }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Read",
@@ -13,17 +31,6 @@
         "matcher": "Edit|Write|MultiEdit",
         "hooks": [
           { "type": "command", "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/reindex-on-edit.sh" }
-        ]
-      }
-    ],
-    "SessionStart": [
-      {
-        "matcher": "startup",
-        "hooks": [
-          { "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/efficient-autoindex.sh",
-            "async": true,
-            "statusMessage": "Indexing codebase into efficient…" }
         ]
       }
     ]
