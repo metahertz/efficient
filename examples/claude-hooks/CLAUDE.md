@@ -1,3 +1,4 @@
+<!-- efficient-integration -->
 # Using the `efficient` MCP tools (token optimization)
 
 The `efficient` MCP server is connected. Prefer its tools over brute-force

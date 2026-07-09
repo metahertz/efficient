@@ -1,63 +1,59 @@
 # efficient — Claude Code integration (CLAUDE.md + hooks)
 
-Get Claude Code to actually use the `efficient` MCP tools. `CLAUDE.md` *suggests*
-(the model decides); hooks *enforce/automate* (deterministic). Together they
-cover all current capabilities. Copy these into the project you point Claude
-Code at.
+Get Claude Code to use the `efficient` MCP tools automatically. `CLAUDE.md`
+*suggests* (the model decides); hooks *enforce/automate* (deterministic).
+Together they cover all current capabilities.
 
 **The 7 MCP tools:** `optimize_context`, `index_codebase`, `lookup_symbol`,
 `find_references`, `reindex_file`, `retrieve_memory`, `store_memory`.
 
-## Install
+## One-command install (recommended)
+From the efficient repo, install everything into your project — no manual copying:
 ```bash
-# CLAUDE.md -> project root (merge if you already have one)
+scripts/install-to-project.sh /path/to/your/project
+```
+It writes `CLAUDE.md`, `.claude/hooks/*` (chmod +x), merges the hooks into
+`.claude/settings.json`, registers the MCP server in `.mcp.json`, and (if the
+daemon is up) does an initial codebase index. Idempotent. Requires `jq`.
+Then just ensure the daemon is running and open Claude Code:
+```bash
+docker compose up -d daemon      # in the efficient repo
+```
+
+## Manual install (if you prefer)
+```bash
 cp CLAUDE.md <your-project>/CLAUDE.md
-
-# hooks
 mkdir -p <your-project>/.claude/hooks
-cp steer-large-reads.sh efficient-autoindex.sh reindex-on-edit.sh recall-memory.sh \
-   <your-project>/.claude/hooks/
-chmod +x <your-project>/.claude/hooks/*.sh
+cp *.sh <your-project>/.claude/hooks/ && chmod +x <your-project>/.claude/hooks/*.sh
 # merge settings.json into <your-project>/.claude/settings.json
+# add the efficient server to <your-project>/.mcp.json (see install script for the shape)
 ```
-**Prereqs:** `jq` on your host; the daemon running (`docker compose up -d daemon`).
-All hooks use `repo_id`/`agent_id` = `"project"` — keep it consistent with CLAUDE.md.
+**Prereqs:** `jq` on your host; the daemon running. All hooks use
+`repo_id`/`agent_id` = `"project"` — keep it consistent with CLAUDE.md.
 
-## CLAUDE.md
-Tells Claude *when* to use each of the 7 tools (targeted symbol lookup instead of
-whole-file reads, `find_references` for impact analysis, `store_memory` for
-durable decisions, `optimize_context` for large context, etc.). This is the
-primary lever — the hooks below make the high-value paths automatic/enforced.
+## What gets wired up
+- **CLAUDE.md** — tells Claude *when* to use each of the 7 tools (targeted
+  `lookup_symbol` instead of whole-file reads, `find_references` for impact
+  analysis, `store_memory` for durable decisions, `optimize_context` for large
+  context).
+- **Hook A — PreToolUse `steer-large-reads.sh`** — denies `Read` of code files
+  > 400 lines and points Claude to `lookup_symbol`/`find_references`. Switch
+  `permissionDecision` `"deny"` → `"ask"` for a human prompt instead.
+- **Hook B — SessionStart `efficient-autoindex.sh`** — indexes the project's
+  `.py` files on new sessions (async). **Mount-free** — sends file contents to
+  `/codebase/index-file`, so no docker bind mount is needed. Whole-file deletes
+  are reconciled on the next full index.
+- **Hook C — PostToolUse `reindex-on-edit.sh`** — after Claude edits a `.py`
+  file (`Edit|Write|MultiEdit`), re-indexes just that file (clean per-file
+  replace) so `lookup_symbol`/`find_references` stay accurate mid-session.
+- **Hook D — UserPromptSubmit `recall-memory.sh`** — queries `retrieve_memory`
+  each prompt and injects relevant semantic/episodic memory as context. Pairs
+  with `store_memory` (model-driven per CLAUDE.md).
 
-## Hook A — PreToolUse `steer-large-reads.sh`
-Denies `Read` of code files > 400 lines and tells Claude to use `lookup_symbol` /
-`find_references` instead. Self-contained. Switch `permissionDecision` from
-`"deny"` to `"ask"` for a human prompt instead of hard enforcement.
-
-## Hook B — SessionStart `efficient-autoindex.sh`
-Indexes the repo into the codebase graph on new sessions (async, non-blocking).
-**Requires the project mounted into the daemon container** — add to the `daemon`
-(and `mcp`) service in `docker-compose.yml`:
-```yaml
-    volumes:
-      - /ABS/PATH/TO/YOUR/PROJECT:/repo:ro
-```
-then `docker compose up -d daemon`. Does a whole-repo clean replace, so
-deleted/renamed files drop out of the graph.
-
-## Hook C — PostToolUse `reindex-on-edit.sh`
-Keeps the graph fresh mid-session: after Claude edits a `.py` file
-(`Edit|Write|MultiEdit`), re-indexes just that file (clean per-file replace).
-**No mount needed** — sends the file contents in the request body. Extend the
-`case` in the script (e.g. add `*.js) ;;`) as more language extractors land.
-
-## Hook D — UserPromptSubmit `recall-memory.sh`
-Auto-recall: on each prompt, queries `retrieve_memory` and injects relevant
-semantic/episodic memory as context, so prior facts/decisions surface without the
-model having to ask. Pairs with `store_memory` (which the model calls per
-CLAUDE.md) — memory only surfaces if it was stored.
+Extend the `case`/`find` filters in the hook scripts (currently `.py`, matching
+the codebase-graph extractor) as more language extractors land.
 
 ## Verify
 - **Read steer:** ask Claude to read a 500-line file → denied, pivots to `lookup_symbol`.
-- **Auto-index / reindex:** `curl -s localhost:7432/metrics` → `codebase_graph` events climb; edit a file and confirm `find_references` reflects it.
-- **Memory:** `store_memory(...)` a fact, start a new prompt mentioning it → the recall hook injects it.
+- **Indexing:** `curl -s localhost:7432/metrics` → `codebase_graph` events climb; edit a file and confirm `find_references` reflects it.
+- **Memory:** `store_memory(...)` a fact, then a new prompt mentioning it → the recall hook injects it.
