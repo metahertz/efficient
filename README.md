@@ -59,14 +59,25 @@ embedding model on its first run and caches it for subsequent runs.
 
 ## Claude Code integration
 
-- `efficient-mcp-README.md` — registering the MCP server (7 tools:
-  `optimize_context`, `index_codebase`, `lookup_symbol`, `find_references`,
-  `retrieve_memory`, `store_memory`, `reindex_file`).
-- `examples/claude-hooks/README.md` — CLAUDE.md + hooks that make Claude Code
-  use those tools automatically (auto-index, auto-reindex-on-edit, read
-  steering, memory recall).
-- `scripts/install-to-project.sh` — one-command install of the above into any
-  project.
+The integration ships as a Claude Code plugin (this repo doubles as its
+marketplace). In Claude Code, run:
+
+```
+/plugin marketplace add metahertz/efficient
+/plugin install efficient@efficient
+```
+
+The plugin bundles the MCP server (7 tools: `optimize_context`,
+`index_codebase`, `lookup_symbol`, `find_references`, `retrieve_memory`,
+`store_memory`, `reindex_file`), four hooks (auto-index on session start,
+reindex on edit, large-read steering, memory recall), a usage skill, and a
+background monitor that auto-starts the daemon stack via
+`plugin/docker-compose.yml` (first install builds images — allow a few
+minutes). To require auth, export `EFFICIENT_API_TOKEN` before starting
+Claude Code — the daemon, MCP server, and hooks all pick it up.
+
+For manual (non-plugin) MCP registration, see `efficient-mcp-README.md`; the
+hook scripts live in `plugin/scripts/` if you want to wire them yourself.
 
 `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` are optional and only needed for the
 `/complete` endpoint and agent-memory fact extraction — see `.env.example`.

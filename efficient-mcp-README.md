@@ -24,6 +24,11 @@ stdio and talks HTTP to the efficient daemon. No Node toolchain is required.
 
 ## Register with Claude Code
 
+> Preferred: install the plugin instead — `/plugin marketplace add
+> metahertz/efficient` then `/plugin install efficient@efficient`. It bundles
+> this MCP server plus hooks, a skill, and a monitor that auto-starts the
+> daemon. The manual registration below is for non-plugin setups.
+
 The MCP server is launched on demand by Claude Code via
 `docker compose run --rm -T mcp`. The `-T` disables pseudo-TTY allocation, which is
 required for clean stdio JSON-RPC framing.

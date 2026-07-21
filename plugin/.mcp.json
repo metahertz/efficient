@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "efficient": {
+      "command": "docker",
+      "args": [
+        "compose",
+        "-f",
+        "${CLAUDE_PLUGIN_ROOT}/docker-compose.yml",
+        "run",
+        "--rm",
+        "-T",
+        "mcp"
+      ]
+    }
+  }
+}

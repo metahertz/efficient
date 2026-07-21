@@ -1,0 +1,52 @@
+# Self-contained stack for the efficient Claude Code plugin.
+# Build contexts point at the GitHub repo so the cached plugin copy works
+# without a local checkout; the first `up` builds images (several minutes).
+name: efficient
+
+services:
+  mongodb:
+    image: mongodb/mongodb-atlas-local:latest
+    restart: unless-stopped
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.runCommand('ping').ok"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  daemon:
+    build:
+      context: https://github.com/metahertz/efficient.git
+      dockerfile: Dockerfile
+      target: base
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:7432:7432"
+    volumes:
+      - hf_cache:/root/.cache/huggingface
+    environment:
+      - EFFICIENT_MONGODB_URI=mongodb://mongodb:27017
+      - EFFICIENT_DB_NAME=efficient
+      - HF_HOME=/root/.cache/huggingface
+      - EFFICIENT_API_TOKEN=${EFFICIENT_API_TOKEN:-}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+  mcp:
+    build:
+      context: https://github.com/metahertz/efficient.git
+      dockerfile: Dockerfile
+      target: base
+    command: python -m efficient.mcp.server
+    environment:
+      - EFFICIENT_DAEMON_URL=http://daemon:7432
+      - EFFICIENT_API_TOKEN=${EFFICIENT_API_TOKEN:-}
+    depends_on:
+      - daemon
+
+volumes:
+  mongodb_data:
+  hf_cache:

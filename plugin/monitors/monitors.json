@@ -1,0 +1,7 @@
+[
+  {
+    "name": "efficient-daemon",
+    "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/daemon-monitor.sh",
+    "description": "efficient daemon health (auto-starts the docker stack)"
+  }
+]
