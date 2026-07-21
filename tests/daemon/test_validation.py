@@ -7,13 +7,13 @@ FIXED_EMBEDDING = [0.1] * 1024
 
 @pytest.fixture(autouse=True)
 def mock_embed(monkeypatch):
-    monkeypatch.setattr("finops.modules.codebase_graph.embed_query", lambda t: FIXED_EMBEDDING)
-    monkeypatch.setattr("finops.modules.codebase_graph.embed_documents", lambda ts: [FIXED_EMBEDDING] * len(ts))
+    monkeypatch.setattr("efficient.modules.codebase_graph.embed_query", lambda t: FIXED_EMBEDDING)
+    monkeypatch.setattr("efficient.modules.codebase_graph.embed_documents", lambda ts: [FIXED_EMBEDDING] * len(ts))
 
 
 @pytest.fixture
-async def client(finops_db):
-    from finops.daemon.app import app
+async def client(efficient_db):
+    from efficient.daemon.app import app
     transport = ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as c:
         yield c
@@ -52,7 +52,7 @@ async def test_codebase_index_rejects_unlisted_path(client, tmp_path):
 
 
 async def test_codebase_index_allows_configured_root(client, tmp_path, monkeypatch):
-    monkeypatch.setenv("FINOPS_ALLOWED_INDEX_ROOTS", str(tmp_path))
+    monkeypatch.setenv("EFFICIENT_ALLOWED_INDEX_ROOTS", str(tmp_path))
     (tmp_path / "m.py").write_text("def f():\n    return 1\n")
     r = await client.post("/codebase/index", json={"repo_id": "r", "path": str(tmp_path)})
     assert r.status_code == 200

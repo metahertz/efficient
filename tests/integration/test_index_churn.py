@@ -1,7 +1,7 @@
 import pytest
 
-from finops.db.collections import CACHE_ENTRIES
-from finops.db.indexes import create_all_indexes
+from efficient.db.collections import CACHE_ENTRIES
+from efficient.db.indexes import create_all_indexes
 from tests.conftest import wait_for_queryable
 
 pytestmark = pytest.mark.integration

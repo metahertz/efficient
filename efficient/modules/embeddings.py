@@ -13,7 +13,7 @@ def _get_model() -> SentenceTransformer:
     if _model is None:
         with _model_lock:
             if _model is None:
-                name = os.getenv("FINOPS_EMBEDDING_MODEL", _MODEL_ID)
+                name = os.getenv("EFFICIENT_EMBEDDING_MODEL", _MODEL_ID)
                 _model = SentenceTransformer(name, trust_remote_code=True, truncate_dim=_DIM)
     return _model
 

@@ -1,8 +1,8 @@
 import pytest
 from unittest.mock import MagicMock
-from finops.modules.context_compressor import ContextCompressor, _count_tokens
-from finops.modules._base import OptimizeRequest
-from finops.db.collections import COMPRESSION_STATS
+from efficient.modules.context_compressor import ContextCompressor, _count_tokens
+from efficient.modules._base import OptimizeRequest
+from efficient.db.collections import COMPRESSION_STATS
 
 
 @pytest.fixture(autouse=True)
@@ -14,7 +14,7 @@ def mock_compressor(monkeypatch):
         compressed = " ".join(words[: max(1, len(words) // 4)])
         return {"compressed_prompt": compressed}
     fake.compress_prompt.side_effect = fake_compress
-    monkeypatch.setattr("finops.modules.context_compressor._get_compressor", lambda: fake)
+    monkeypatch.setattr("efficient.modules.context_compressor._get_compressor", lambda: fake)
 
 
 @pytest.fixture
@@ -23,8 +23,8 @@ def config():
 
 
 @pytest.fixture
-async def compressor(finops_db, config):
-    return ContextCompressor(finops_db, config)
+async def compressor(efficient_db, config):
+    return ContextCompressor(efficient_db, config)
 
 
 @pytest.fixture
@@ -38,13 +38,13 @@ def long_req():
     return OptimizeRequest(prompt="hi", context=long_ctx, agent_id="a1", framework="test")
 
 
-async def test_bypass_when_context_below_threshold(compressor, finops_db, short_req):
+async def test_bypass_when_context_below_threshold(compressor, efficient_db, short_req):
     new_req, result = await compressor.process(short_req)
     assert new_req.context == "short"
     assert result.tokens_saved == 0
     assert result.tokens_added == 0
     assert "bypass" in result.detail
-    assert await finops_db[COMPRESSION_STATS].count_documents({}) == 0
+    assert await efficient_db[COMPRESSION_STATS].count_documents({}) == 0
 
 
 async def test_compresses_when_above_threshold(compressor, long_req):
@@ -57,11 +57,11 @@ async def test_compresses_when_above_threshold(compressor, long_req):
     assert result.baseline_tokens == before
 
 
-async def test_saves_compression_stats(compressor, finops_db, long_req):
+async def test_saves_compression_stats(compressor, efficient_db, long_req):
     await compressor.process(long_req)
-    count = await finops_db[COMPRESSION_STATS].count_documents({})
+    count = await efficient_db[COMPRESSION_STATS].count_documents({})
     assert count == 1
-    doc = await finops_db[COMPRESSION_STATS].find_one({})
+    doc = await efficient_db[COMPRESSION_STATS].find_one({})
     assert doc["original_tokens"] > 0
     assert doc["compressed_tokens"] > 0
     assert doc["ratio"] > 1.0

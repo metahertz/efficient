@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # PostToolUse hook: re-index a file into the efficient codebase graph after Claude edits it.
 AUTH_ARGS=()
-[ -n "${FINOPS_API_TOKEN:-}" ] && AUTH_ARGS=(-H "Authorization: Bearer $FINOPS_API_TOKEN")
+[ -n "${EFFICIENT_API_TOKEN:-}" ] && AUTH_ARGS=(-H "Authorization: Bearer $EFFICIENT_API_TOKEN")
 input=$(cat)
 file=$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty')
 [ -z "$file" ] && exit 0

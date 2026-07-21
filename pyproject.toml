@@ -41,10 +41,10 @@ hosted = [
 ]
 
 [project.scripts]
-efficient = "finops.cli.main:cli"
+efficient = "efficient.cli.main:cli"
 
 [tool.hatch.build.targets.wheel]
-packages = ["finops"]
+packages = ["efficient"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

@@ -1,6 +1,6 @@
 import pytest
 from httpx import AsyncClient, ASGITransport
-from finops.daemon.app import app
+from efficient.daemon.app import app
 
 
 async def test_health_returns_ok():

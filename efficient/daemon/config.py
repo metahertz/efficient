@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from finops.db.collections import CONFIG
-from finops.db.indexes import EMBEDDING_DIMENSIONS
+from efficient.db.collections import CONFIG
+from efficient.db.indexes import EMBEDDING_DIMENSIONS
 
 DEFAULT_CONFIG: dict = {
     "_id": "global",

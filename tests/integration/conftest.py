@@ -8,8 +8,8 @@ import httpx
 import pytest
 from pymongo import MongoClient
 
-MONGO_URI = os.getenv("FINOPS_TEST_MONGODB_URI", "mongodb://localhost:27018/?directConnection=true")
-LIVE_DB = "finops_live_test"
+MONGO_URI = os.getenv("EFFICIENT_TEST_MONGODB_URI", "mongodb://localhost:27018/?directConnection=true")
+LIVE_DB = "efficient_live_test"
 
 
 def _free_port() -> int:
@@ -23,12 +23,12 @@ def live_daemon():
     port = _free_port()
     env = {
         **os.environ,
-        "FINOPS_MONGODB_URI": MONGO_URI,
-        "FINOPS_DB_NAME": LIVE_DB,
+        "EFFICIENT_MONGODB_URI": MONGO_URI,
+        "EFFICIENT_DB_NAME": LIVE_DB,
     }
-    env.pop("FINOPS_API_TOKEN", None)  # keep the harness auth-free
+    env.pop("EFFICIENT_API_TOKEN", None)  # keep the harness auth-free
     proc = subprocess.Popen(
-        [sys.executable, "-m", "uvicorn", "finops.daemon.app:app",
+        [sys.executable, "-m", "uvicorn", "efficient.daemon.app:app",
          "--host", "127.0.0.1", "--port", str(port)],
         env=env,
     )

@@ -1,8 +1,8 @@
 import pytest
 from pathlib import Path
-from finops.modules.codebase_graph import CodebaseGraph
-from finops.modules._base import OptimizeRequest
-from finops.db.collections import CODEBASE_NODES
+from efficient.modules.codebase_graph import CodebaseGraph
+from efficient.modules._base import OptimizeRequest
+from efficient.db.collections import CODEBASE_NODES
 
 FIXED_EMBEDDING = [0.1] * 1024
 FIXTURE_PATH = Path(__file__).parent.parent / "fixtures" / "sample.py"
@@ -11,13 +11,13 @@ GRAPH_FIXTURE_PATH = Path(__file__).parent.parent / "fixtures" / "graph_sample.p
 
 @pytest.fixture(autouse=True)
 def mock_embed(monkeypatch):
-    monkeypatch.setattr("finops.modules.codebase_graph.embed_query", lambda t: FIXED_EMBEDDING)
-    monkeypatch.setattr("finops.modules.codebase_graph.embed_documents", lambda ts: [FIXED_EMBEDDING] * len(ts))
+    monkeypatch.setattr("efficient.modules.codebase_graph.embed_query", lambda t: FIXED_EMBEDDING)
+    monkeypatch.setattr("efficient.modules.codebase_graph.embed_documents", lambda ts: [FIXED_EMBEDDING] * len(ts))
 
 
 @pytest.fixture
-async def graph(finops_db):
-    return CodebaseGraph(finops_db, {"repo_paths": []})
+async def graph(efficient_db):
+    return CodebaseGraph(efficient_db, {"repo_paths": []})
 
 
 @pytest.fixture
@@ -35,15 +35,15 @@ async def test_index_file_returns_symbol_count(graph, sample_source):
     assert count >= 3
 
 
-async def test_index_file_stores_symbols_in_mongo(graph, finops_db, sample_source):
+async def test_index_file_stores_symbols_in_mongo(graph, efficient_db, sample_source):
     await graph.index_file("repo1", "sample.py", sample_source)
-    count = await finops_db[CODEBASE_NODES].count_documents({"repo_id": "repo1"})
+    count = await efficient_db[CODEBASE_NODES].count_documents({"repo_id": "repo1"})
     assert count >= 3
 
 
-async def test_index_file_captures_function_metadata(graph, finops_db, sample_source):
+async def test_index_file_captures_function_metadata(graph, efficient_db, sample_source):
     await graph.index_file("repo1", "sample.py", sample_source)
-    doc = await finops_db[CODEBASE_NODES].find_one({"repo_id": "repo1", "symbol": "add"})
+    doc = await efficient_db[CODEBASE_NODES].find_one({"repo_id": "repo1", "symbol": "add"})
     assert doc is not None
     assert doc["type"] == "function"
     assert doc["file_path"] == "sample.py"
@@ -51,9 +51,9 @@ async def test_index_file_captures_function_metadata(graph, finops_db, sample_so
     assert "def add" in doc["source_snippet"]
 
 
-async def test_index_file_captures_class(graph, finops_db, sample_source):
+async def test_index_file_captures_class(graph, efficient_db, sample_source):
     await graph.index_file("repo1", "sample.py", sample_source)
-    doc = await finops_db[CODEBASE_NODES].find_one({"repo_id": "repo1", "symbol": "Calculator"})
+    doc = await efficient_db[CODEBASE_NODES].find_one({"repo_id": "repo1", "symbol": "Calculator"})
     assert doc is not None
     assert doc["type"] == "class"
 
@@ -67,53 +67,53 @@ async def test_process_no_op_when_no_repo_configured(graph):
     assert result.short_circuit is False
 
 
-async def test_index_file_stores_both_same_named_symbols(graph, finops_db, sample_source):
+async def test_index_file_stores_both_same_named_symbols(graph, efficient_db, sample_source):
     await graph.index_file("repo1", "sample.py", sample_source)
-    count = await finops_db[CODEBASE_NODES].count_documents({"repo_id": "repo1", "symbol": "add"})
+    count = await efficient_db[CODEBASE_NODES].count_documents({"repo_id": "repo1", "symbol": "add"})
     assert count == 2
 
 
-async def test_process_no_op_when_no_symbols_match(finops_db):
-    cg = CodebaseGraph(finops_db, {"repo_paths": ["repo1"]})
+async def test_process_no_op_when_no_symbols_match(efficient_db):
+    cg = CodebaseGraph(efficient_db, {"repo_paths": ["repo1"]})
     req = OptimizeRequest(prompt="find something", context="ORIG", agent_id="a", framework="f")
     new_req, result = await cg.process(req)
     assert new_req.context == "ORIG"
     assert result.tokens_saved == 0
 
 
-async def test_reindex_removes_deleted_symbols(graph, finops_db):
+async def test_reindex_removes_deleted_symbols(graph, efficient_db):
     src_two = "def add(a, b):\n    return a + b\n\n\ndef multiply(a, b):\n    return a * b\n"
     n1 = await graph.index_file("repo1", "f.py", src_two)
     assert n1 == 2
     src_one = "def add(a, b):\n    return a + b\n"
     await graph.index_file("repo1", "f.py", src_one)
-    count = await finops_db[CODEBASE_NODES].count_documents({"repo_id": "repo1", "file_path": "f.py"})
+    count = await efficient_db[CODEBASE_NODES].count_documents({"repo_id": "repo1", "file_path": "f.py"})
     assert count == 1
-    gone = await finops_db[CODEBASE_NODES].find_one({"repo_id": "repo1", "file_path": "f.py", "symbol": "multiply"})
+    gone = await efficient_db[CODEBASE_NODES].find_one({"repo_id": "repo1", "file_path": "f.py", "symbol": "multiply"})
     assert gone is None
 
 
-async def test_reindex_no_duplicate_on_move(graph, finops_db):
+async def test_reindex_no_duplicate_on_move(graph, efficient_db):
     src = "def add(a, b):\n    return a + b\n"
     await graph.index_file("repo1", "f.py", src)
     moved = "\n\n\n\ndef add(a, b):\n    return a + b\n"
     await graph.index_file("repo1", "f.py", moved)
-    count = await finops_db[CODEBASE_NODES].count_documents({"repo_id": "repo1", "file_path": "f.py", "symbol": "add"})
+    count = await efficient_db[CODEBASE_NODES].count_documents({"repo_id": "repo1", "file_path": "f.py", "symbol": "add"})
     assert count == 1
 
 
-async def test_reindex_empty_file_removes_symbols(graph, finops_db):
+async def test_reindex_empty_file_removes_symbols(graph, efficient_db):
     src = "def add(a, b):\n    return a + b\n"
     await graph.index_file("repo1", "f.py", src)
     n = await graph.index_file("repo1", "f.py", "")
     assert n == 0
-    count = await finops_db[CODEBASE_NODES].count_documents({"repo_id": "repo1", "file_path": "f.py"})
+    count = await efficient_db[CODEBASE_NODES].count_documents({"repo_id": "repo1", "file_path": "f.py"})
     assert count == 0
 
 
-async def test_index_populates_references(graph, finops_db, graph_source):
+async def test_index_populates_references(graph, efficient_db, graph_source):
     await graph.index_file("grepo", "graph_sample.py", graph_source)
-    doc = await finops_db[CODEBASE_NODES].find_one({"repo_id": "grepo", "symbol": "main"})
+    doc = await efficient_db[CODEBASE_NODES].find_one({"repo_id": "grepo", "symbol": "main"})
     assert doc is not None
     assert "helper" in doc["references"]
 
@@ -138,14 +138,14 @@ async def test_callers_empty_for_unreferenced(graph, graph_source):
     assert callers == []
 
 
-async def test_clear_repo_removes_all_repo_symbols(graph, finops_db):
+async def test_clear_repo_removes_all_repo_symbols(graph, efficient_db):
     await graph.index_file("cr1", "a.py", "def func_a():\n    return 1\n")
     await graph.index_file("cr1", "b.py", "def func_b():\n    return 2\n")
-    count = await finops_db[CODEBASE_NODES].count_documents({"repo_id": "cr1"})
+    count = await efficient_db[CODEBASE_NODES].count_documents({"repo_id": "cr1"})
     assert count >= 2
     deleted = await graph.clear_repo("cr1")
     assert deleted >= 2
-    count_after = await finops_db[CODEBASE_NODES].count_documents({"repo_id": "cr1"})
+    count_after = await efficient_db[CODEBASE_NODES].count_documents({"repo_id": "cr1"})
     assert count_after == 0
     empty_deleted = await graph.clear_repo("cr1")
     assert empty_deleted == 0

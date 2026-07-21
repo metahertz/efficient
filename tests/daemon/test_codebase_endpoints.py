@@ -2,20 +2,20 @@ from pathlib import Path
 
 import pytest
 from httpx import AsyncClient, ASGITransport
-from finops.daemon.app import app
+from efficient.daemon.app import app
 
 FIXED_EMBEDDING = [0.1] * 1024
 
 
 @pytest.fixture(autouse=True)
 def mock_embed(monkeypatch):
-    monkeypatch.setattr("finops.modules.codebase_graph.embed_query", lambda t: FIXED_EMBEDDING)
-    monkeypatch.setattr("finops.modules.codebase_graph.embed_documents", lambda ts: [FIXED_EMBEDDING] * len(ts))
-    monkeypatch.setenv("FINOPS_ALLOWED_INDEX_ROOTS", str(Path("tests/fixtures").resolve()))
+    monkeypatch.setattr("efficient.modules.codebase_graph.embed_query", lambda t: FIXED_EMBEDDING)
+    monkeypatch.setattr("efficient.modules.codebase_graph.embed_documents", lambda ts: [FIXED_EMBEDDING] * len(ts))
+    monkeypatch.setenv("EFFICIENT_ALLOWED_INDEX_ROOTS", str(Path("tests/fixtures").resolve()))
 
 
 @pytest.fixture
-async def client(finops_db):
+async def client(efficient_db):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         yield c
 
@@ -60,8 +60,8 @@ async def test_codebase_index_missing_path_returns_zero(client, body, expected_r
     assert data == {"repo_id": expected_repo, "indexed_files": 0, "indexed_symbols": 0}
 
 
-async def test_codebase_index_file_endpoint(client, finops_db):
-    from finops.db.collections import CODEBASE_NODES
+async def test_codebase_index_file_endpoint(client, efficient_db):
+    from efficient.db.collections import CODEBASE_NODES
     resp = await client.post("/codebase/index-file", json={
         "repo_id": "rif", "file_path": "x.py", "source": "def foo():\n    return 1\n"})
     assert resp.status_code == 200
@@ -73,7 +73,7 @@ async def test_codebase_index_file_endpoint(client, finops_db):
         "repo_id": "rif", "file_path": "x.py", "source": "# nothing here\n"})
     assert resp2.status_code == 200
     assert resp2.json()["indexed_symbols"] == 0
-    gone = await finops_db[CODEBASE_NODES].find_one(
+    gone = await efficient_db[CODEBASE_NODES].find_one(
         {"repo_id": "rif", "file_path": "x.py", "symbol": "foo"})
     assert gone is None
 
@@ -91,9 +91,9 @@ async def test_codebase_references_endpoint(client):
     assert isinstance(data["callees"], list)
 
 
-async def test_full_reindex_drops_deleted_file(client, finops_db, tmp_path, monkeypatch):
-    monkeypatch.setenv("FINOPS_ALLOWED_INDEX_ROOTS", str(tmp_path.resolve()))
-    from finops.db.collections import CODEBASE_NODES
+async def test_full_reindex_drops_deleted_file(client, efficient_db, tmp_path, monkeypatch):
+    monkeypatch.setenv("EFFICIENT_ALLOWED_INDEX_ROOTS", str(tmp_path.resolve()))
+    from efficient.db.collections import CODEBASE_NODES
     a = tmp_path / "a.py"
     b = tmp_path / "b.py"
     a.write_text("def func_alpha():\n    return 1\n")
@@ -101,14 +101,14 @@ async def test_full_reindex_drops_deleted_file(client, finops_db, tmp_path, monk
     resp = await client.post("/codebase/index", json={"repo_id": "tmpr", "path": str(tmp_path)})
     assert resp.status_code == 200
     assert resp.json()["indexed_symbols"] >= 2
-    alpha = await finops_db[CODEBASE_NODES].find_one({"repo_id": "tmpr", "symbol": "func_alpha"})
-    beta = await finops_db[CODEBASE_NODES].find_one({"repo_id": "tmpr", "symbol": "func_beta"})
+    alpha = await efficient_db[CODEBASE_NODES].find_one({"repo_id": "tmpr", "symbol": "func_alpha"})
+    beta = await efficient_db[CODEBASE_NODES].find_one({"repo_id": "tmpr", "symbol": "func_beta"})
     assert alpha is not None
     assert beta is not None
     b.unlink()
     resp2 = await client.post("/codebase/index", json={"repo_id": "tmpr", "path": str(tmp_path)})
     assert resp2.status_code == 200
-    beta_gone = await finops_db[CODEBASE_NODES].find_one({"repo_id": "tmpr", "symbol": "func_beta"})
+    beta_gone = await efficient_db[CODEBASE_NODES].find_one({"repo_id": "tmpr", "symbol": "func_beta"})
     assert beta_gone is None
-    alpha_still = await finops_db[CODEBASE_NODES].find_one({"repo_id": "tmpr", "symbol": "func_alpha"})
+    alpha_still = await efficient_db[CODEBASE_NODES].find_one({"repo_id": "tmpr", "symbol": "func_alpha"})
     assert alpha_still is not None

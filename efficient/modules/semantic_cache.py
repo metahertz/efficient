@@ -5,10 +5,10 @@ from datetime import datetime, timezone, timedelta
 
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from finops.modules._base import BaseModule, OptimizeRequest, ModuleResult
-from finops.modules.embeddings import embed_query, embed_documents
-from finops.db.collections import CACHE_ENTRIES
-from finops.db.vector import vector_search
+from efficient.modules._base import BaseModule, OptimizeRequest, ModuleResult
+from efficient.modules.embeddings import embed_query, embed_documents
+from efficient.db.collections import CACHE_ENTRIES
+from efficient.db.vector import vector_search
 
 
 class SemanticCache(BaseModule):

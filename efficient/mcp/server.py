@@ -3,7 +3,7 @@ import sys
 
 from mcp.server.fastmcp import FastMCP
 
-from finops.mcp import daemon_client
+from efficient.mcp import daemon_client
 
 logging.basicConfig(level=logging.INFO, stream=sys.stderr)
 
@@ -13,7 +13,7 @@ mcp = FastMCP("efficient")
 @mcp.tool()
 async def optimize_context(prompt: str, context: str = "", agent_id: str = "default",
                            corpus_id: str | None = None, strategy: str | None = None) -> dict:
-    """Route a prompt and its context through the finops optimization pipeline (semantic cache, codebase graph, retrieval, memory, compression). Returns the trimmed optimized_context, tokens_saved, cache_hit, and per-module detail."""
+    """Route a prompt and its context through the efficient optimization pipeline (semantic cache, codebase graph, retrieval, memory, compression). Returns the trimmed optimized_context, tokens_saved, cache_hit, and per-module detail."""
     return await daemon_client.optimize(prompt, context, agent_id, corpus_id, strategy)
 
 

@@ -38,11 +38,11 @@ services:
     working_dir: /workspace
     command: sleep infinity
     environment:
-      - FINOPS_MONGODB_URI=mongodb://mongodb:27017
-      - FINOPS_DB_NAME=finops
-      - FINOPS_TEST_MONGODB_URI=mongodb://mongodb-test:27017
+      - EFFICIENT_MONGODB_URI=mongodb://mongodb:27017
+      - EFFICIENT_DB_NAME=efficient
+      - EFFICIENT_TEST_MONGODB_URI=mongodb://mongodb-test:27017
       - HF_HOME=/root/.cache/huggingface
-      - FINOPS_ALLOWED_INDEX_ROOTS=/workspace
+      - EFFICIENT_ALLOWED_INDEX_ROOTS=/workspace
     depends_on:
       mongodb:
         condition: service_healthy
@@ -59,10 +59,10 @@ services:
     volumes:
       - hf_cache:/root/.cache/huggingface
     environment:
-      - FINOPS_MONGODB_URI=mongodb://mongodb:27017
-      - FINOPS_DB_NAME=finops
+      - EFFICIENT_MONGODB_URI=mongodb://mongodb:27017
+      - EFFICIENT_DB_NAME=efficient
       - HF_HOME=/root/.cache/huggingface
-      - FINOPS_API_TOKEN=${FINOPS_API_TOKEN:-}
+      - EFFICIENT_API_TOKEN=${EFFICIENT_API_TOKEN:-}
     depends_on:
       mongodb:
         condition: service_healthy
@@ -72,10 +72,10 @@ services:
       context: .
       dockerfile: Dockerfile
       target: dev
-    command: python -m finops.mcp.server
+    command: python -m efficient.mcp.server
     environment:
-      - FINOPS_DAEMON_URL=http://daemon:7432
-      - FINOPS_API_TOKEN=${FINOPS_API_TOKEN:-}
+      - EFFICIENT_DAEMON_URL=http://daemon:7432
+      - EFFICIENT_API_TOKEN=${EFFICIENT_API_TOKEN:-}
     volumes:
       - .:/workspace
     depends_on:

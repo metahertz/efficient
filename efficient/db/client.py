@@ -11,7 +11,7 @@ def get_async_client() -> AsyncIOMotorClient:
     global _async_client
     if _async_client is None:
         _async_client = AsyncIOMotorClient(
-            os.getenv("FINOPS_MONGODB_URI", "mongodb://localhost:27017")
+            os.getenv("EFFICIENT_MONGODB_URI", "mongodb://localhost:27017")
         )
     return _async_client
 
@@ -20,7 +20,7 @@ def get_sync_client() -> MongoClient:
     global _sync_client
     if _sync_client is None:
         _sync_client = MongoClient(
-            os.getenv("FINOPS_MONGODB_URI", "mongodb://localhost:27017")
+            os.getenv("EFFICIENT_MONGODB_URI", "mongodb://localhost:27017")
         )
     return _sync_client
 
@@ -28,13 +28,13 @@ def get_sync_client() -> MongoClient:
 def get_async_db(client: AsyncIOMotorClient | None = None) -> AsyncIOMotorDatabase:
     if client is None:
         client = get_async_client()
-    return client[os.getenv("FINOPS_DB_NAME", "finops")]
+    return client[os.getenv("EFFICIENT_DB_NAME", "efficient")]
 
 
 def get_sync_db(client: MongoClient | None = None) -> Database:
     if client is None:
         client = get_sync_client()
-    return client[os.getenv("FINOPS_DB_NAME", "finops")]
+    return client[os.getenv("EFFICIENT_DB_NAME", "efficient")]
 
 
 def reset_clients() -> None:

@@ -3,11 +3,11 @@ import httpx
 
 
 def _base_url() -> str:
-    return os.getenv("FINOPS_DAEMON_URL", "http://daemon:7432")
+    return os.getenv("EFFICIENT_DAEMON_URL", "http://daemon:7432")
 
 
 def _auth_headers() -> dict:
-    token = os.getenv("FINOPS_API_TOKEN", "")
+    token = os.getenv("EFFICIENT_API_TOKEN", "")
     return {"Authorization": f"Bearer {token}"} if token else {}
 
 

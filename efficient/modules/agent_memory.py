@@ -7,10 +7,10 @@ from langchain_anthropic import ChatAnthropic
 from openai import OpenAI
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from finops.modules._base import BaseModule, OptimizeRequest, ModuleResult
-from finops.modules.embeddings import embed_query, embed_documents
-from finops.db.collections import WORKING_MEMORY, EPISODIC_MEMORY, SEMANTIC_MEMORY
-from finops.db.vector import vector_search
+from efficient.modules._base import BaseModule, OptimizeRequest, ModuleResult
+from efficient.modules.embeddings import embed_query, embed_documents
+from efficient.db.collections import WORKING_MEMORY, EPISODIC_MEMORY, SEMANTIC_MEMORY
+from efficient.db.vector import vector_search
 
 _FACT_PROMPT = (
     "Extract factual statements from this conversation. "

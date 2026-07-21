@@ -2,7 +2,7 @@
 # UserPromptSubmit hook: auto-recall relevant efficient memory and inject it as context.
 # Copy to <your project>/.claude/hooks/ and chmod +x. Requires jq + the daemon running.
 AUTH_ARGS=()
-[ -n "${FINOPS_API_TOKEN:-}" ] && AUTH_ARGS=(-H "Authorization: Bearer $FINOPS_API_TOKEN")
+[ -n "${EFFICIENT_API_TOKEN:-}" ] && AUTH_ARGS=(-H "Authorization: Bearer $EFFICIENT_API_TOKEN")
 input=$(cat)
 q=$(printf '%s' "$input" | jq -r '.prompt // empty')
 [ -z "$q" ] && exit 0

@@ -4,7 +4,7 @@ A local, MongoDB-backed daemon that saves AI tokens: codebase graph indexing,
 semantic caching, agent memory, context compression, and hybrid retrieval,
 combined into one pipeline and exposed over HTTP to every major AI framework —
 including a native MCP integration for Claude Code. The Python package is
-`finops` and the installed CLI is `efficient` (the repo and CLI go by the
+`efficient` and the installed CLI is `efficient` (the repo and CLI go by the
 shorter, user-facing name; the package keeps its original internal name to
 avoid a disruptive rename of the code).
 
@@ -24,7 +24,7 @@ daemon and its MongoDB, and confirms the daemon is answering on `127.0.0.1:7432`
 ```bash
 python3.12 -m venv venv
 venv/bin/pip install -e ".[dev]"
-venv/bin/python -m finops.cli.main start   # or, once installed: efficient start
+venv/bin/python -m efficient.cli.main start   # or, once installed: efficient start
 ```
 
 On first run, call `efficient warmup` once to pre-load the local embedding
@@ -44,13 +44,13 @@ embedding model on its first run and caches it for subsequent runs.
 
 ## Security
 
-- The daemon binds to `127.0.0.1` by default; set `FINOPS_HOST` to override.
-- Set `FINOPS_API_TOKEN` to require a bearer token on daemon requests
+- The daemon binds to `127.0.0.1` by default; set `EFFICIENT_HOST` to override.
+- Set `EFFICIENT_API_TOKEN` to require a bearer token on daemon requests
   (`/health`, `/metrics`, and `/dashboard*` stay exempt so basic liveness
   checks and the dashboard keep working without a token). `docker compose`
-  passes `FINOPS_API_TOKEN` through to both the `daemon` and `mcp` services.
+  passes `EFFICIENT_API_TOKEN` through to both the `daemon` and `mcp` services.
 - `index_codebase` only indexes paths under `modules.codebase_graph.repo_paths`
-  (the daemon's Mongo-backed config) or `FINOPS_ALLOWED_INDEX_ROOTS` (a
+  (the daemon's Mongo-backed config) or `EFFICIENT_ALLOWED_INDEX_ROOTS` (a
   colon-separated list of additional allowed roots). Note that resetting the
   database (`docker compose down -v`) also resets this config back to its
   defaults.
@@ -74,7 +74,7 @@ API key.
 ## Design
 
 The full design spec lives at
-`docs/superpowers/specs/2026-06-30-fullfinops-ai-design.md`. Read it alongside
+`docs/superpowers/specs/2026-06-30-fullefficient-ai-design.md`. Read it alongside
 its own revision headers (Rev 2, Rev 3, …) near the top — later revisions
 supersede conflicting statements in the original body, so the headers are the
 more current source of truth where they disagree.

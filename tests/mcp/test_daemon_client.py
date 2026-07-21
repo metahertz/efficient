@@ -1,5 +1,5 @@
 import pytest
-from finops.mcp import daemon_client
+from efficient.mcp import daemon_client
 
 
 class _FakeResponse:
@@ -35,7 +35,7 @@ class _FakeClient:
 @pytest.fixture(autouse=True)
 def patch_httpx(monkeypatch):
     _FakeClient.calls = []
-    monkeypatch.setattr("finops.mcp.daemon_client.httpx.AsyncClient", _FakeClient)
+    monkeypatch.setattr("efficient.mcp.daemon_client.httpx.AsyncClient", _FakeClient)
 
 
 def _last():
@@ -43,17 +43,17 @@ def _last():
 
 
 def test_base_url_default(monkeypatch):
-    monkeypatch.delenv("FINOPS_DAEMON_URL", raising=False)
+    monkeypatch.delenv("EFFICIENT_DAEMON_URL", raising=False)
     assert daemon_client._base_url() == "http://daemon:7432"
 
 
 def test_base_url_override(monkeypatch):
-    monkeypatch.setenv("FINOPS_DAEMON_URL", "http://localhost:9999")
+    monkeypatch.setenv("EFFICIENT_DAEMON_URL", "http://localhost:9999")
     assert daemon_client._base_url() == "http://localhost:9999"
 
 
 async def test_optimize_posts_optimize(monkeypatch):
-    monkeypatch.setenv("FINOPS_DAEMON_URL", "http://localhost:9999")
+    monkeypatch.setenv("EFFICIENT_DAEMON_URL", "http://localhost:9999")
     out = await daemon_client.optimize("p", "c", agent_id="a1", corpus_id="corp", strategy="s1")
     call = _last()
     assert call["base_url"] == "http://localhost:9999"
@@ -121,7 +121,7 @@ async def test_memory_store_posts_store():
 
 
 async def test_post_sends_bearer_token_when_set(monkeypatch):
-    monkeypatch.setenv("FINOPS_API_TOKEN", "sekret")
+    monkeypatch.setenv("EFFICIENT_API_TOKEN", "sekret")
     out = await daemon_client.optimize("test")
     call = _last()
     assert call["headers"].get("Authorization") == "Bearer sekret"

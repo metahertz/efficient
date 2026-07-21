@@ -1,6 +1,6 @@
 import numpy as np
 from unittest.mock import MagicMock
-import finops.modules.embeddings as emb
+import efficient.modules.embeddings as emb
 
 
 def _fake_model():

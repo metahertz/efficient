@@ -3,7 +3,7 @@
 # Mount-free — sends file contents to /codebase/index-file (no container bind mount needed).
 # Copy to <your project>/.claude/hooks/ and chmod +x. Requires jq + the daemon running.
 AUTH_ARGS=()
-[ -n "${FINOPS_API_TOKEN:-}" ] && AUTH_ARGS=(-H "Authorization: Bearer $FINOPS_API_TOKEN")
+[ -n "${EFFICIENT_API_TOKEN:-}" ] && AUTH_ARGS=(-H "Authorization: Bearer $EFFICIENT_API_TOKEN")
 [ -n "$CLAUDE_PROJECT_DIR" ] || exit 0
 cd "$CLAUDE_PROJECT_DIR" || exit 0
 curl -s -m 2 http://localhost:7432/health >/dev/null 2>&1 || exit 0

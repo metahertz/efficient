@@ -14,7 +14,7 @@ stdio and talks HTTP to the efficient daemon. No Node toolchain is required.
        docker compose build daemon dev
 
 2. Start the daemon and MongoDB (the daemon must be running before Claude Code
-   launches the MCP server — the server reaches it at FINOPS_DAEMON_URL):
+   launches the MCP server — the server reaches it at EFFICIENT_DAEMON_URL):
 
        docker compose up -d daemon
 
@@ -56,20 +56,20 @@ For example, from the repo root:
     }
 
 Use the absolute path to this repo's `docker-compose.yml`. Because the MCP server
-reads `FINOPS_DAEMON_URL` (baked into the `mcp` compose service as
+reads `EFFICIENT_DAEMON_URL` (baked into the `mcp` compose service as
 `http://daemon:7432`) and joins the compose network, it reaches the running daemon
 container directly.
 
 ## Security
 
-- The daemon binds to `127.0.0.1` by default; set `FINOPS_HOST` to override if you
+- The daemon binds to `127.0.0.1` by default; set `EFFICIENT_HOST` to override if you
   need it reachable from elsewhere.
-- Set `FINOPS_API_TOKEN` to require a bearer token on daemon requests (`/health`,
+- Set `EFFICIENT_API_TOKEN` to require a bearer token on daemon requests (`/health`,
   `/metrics`, and `/dashboard*` stay exempt). `docker compose` passes the same
-  `FINOPS_API_TOKEN` through to both the `daemon` and `mcp` services, so the MCP
+  `EFFICIENT_API_TOKEN` through to both the `daemon` and `mcp` services, so the MCP
   server authenticates automatically once it's set.
 - `index_codebase` only indexes paths that fall under `modules.codebase_graph.repo_paths`
-  (as configured in the daemon's Mongo-backed config) or `FINOPS_ALLOWED_INDEX_ROOTS`
+  (as configured in the daemon's Mongo-backed config) or `EFFICIENT_ALLOWED_INDEX_ROOTS`
   (a colon-separated list of additional allowed roots).
 
 ## Notes

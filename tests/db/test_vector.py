@@ -1,6 +1,6 @@
 import pytest
 from pymongo.errors import OperationFailure
-from finops.db.vector import vector_search
+from efficient.db.vector import vector_search
 
 
 class _FakeCollection:

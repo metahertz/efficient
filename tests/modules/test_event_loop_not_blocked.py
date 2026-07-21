@@ -1,19 +1,19 @@
 import asyncio
 import time
 
-from finops.modules._base import OptimizeRequest
-from finops.modules.semantic_cache import SemanticCache
+from efficient.modules._base import OptimizeRequest
+from efficient.modules.semantic_cache import SemanticCache
 
 
-async def test_slow_embedding_does_not_block_event_loop(finops_db, monkeypatch):
+async def test_slow_embedding_does_not_block_event_loop(efficient_db, monkeypatch):
     def slow_embed_query(text):
         time.sleep(0.5)  # simulates model inference on CPU
         return [0.1] * 1024
 
-    import finops.modules.semantic_cache as sc
+    import efficient.modules.semantic_cache as sc
     monkeypatch.setattr(sc, "embed_query", slow_embed_query)
 
-    cache = SemanticCache(finops_db, {})
+    cache = SemanticCache(efficient_db, {})
     request = OptimizeRequest(prompt="p", context="", agent_id="a", framework="t", corpus_id=None)
 
     ticks = 0

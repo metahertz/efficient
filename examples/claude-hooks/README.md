@@ -55,7 +55,7 @@ the codebase-graph extractor) as more language extractors land.
 
 ## Auth
 
-If the daemon has `FINOPS_API_TOKEN` set, export the same variable in the
+If the daemon has `EFFICIENT_API_TOKEN` set, export the same variable in the
 environment Claude Code runs in — the hooks pick it up and attach it as a
 bearer `Authorization` header automatically on every daemon request. Also run
 `efficient warmup` once before your first SessionStart so the autoindex hook

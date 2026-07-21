@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from finops.db.collections import CACHE_ENTRIES, COMPRESSION_STATS, REQUEST_LOG
+from efficient.db.collections import CACHE_ENTRIES, COMPRESSION_STATS, REQUEST_LOG
 
 _AUGMENTER_MODULES = ("codebase_graph", "hybrid_retrieval", "agent_memory")
 

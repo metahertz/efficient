@@ -6,16 +6,16 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 from httpx import AsyncClient, ASGITransport
 
-from finops.modules.semantic_cache import SemanticCache
-from finops.modules.codebase_graph import CodebaseGraph
-from finops.modules.hybrid_retrieval import HybridRetrieval
-from finops.modules.agent_memory import AgentMemory
-from finops.modules._base import OptimizeRequest
-from finops.db.collections import (
+from efficient.modules.semantic_cache import SemanticCache
+from efficient.modules.codebase_graph import CodebaseGraph
+from efficient.modules.hybrid_retrieval import HybridRetrieval
+from efficient.modules.agent_memory import AgentMemory
+from efficient.modules._base import OptimizeRequest
+from efficient.db.collections import (
     CACHE_ENTRIES, CODEBASE_NODES, CORPUS_CHUNKS,
     EPISODIC_MEMORY, SEMANTIC_MEMORY,
 )
-from finops.daemon.app import app
+from efficient.daemon.app import app
 from tests.conftest import wait_for_queryable
 
 pytestmark = pytest.mark.integration
@@ -23,8 +23,8 @@ pytestmark = pytest.mark.integration
 _SAMPLE_SOURCE = Path(__file__).parent.parent / "fixtures" / "sample.py"
 
 
-async def test_semantic_cache_paraphrase_hit(finops_db, sync_db):
-    cache = SemanticCache(finops_db, {"similarity_threshold": 0.55, "cache_key": "prompt"})
+async def test_semantic_cache_paraphrase_hit(efficient_db, sync_db):
+    cache = SemanticCache(efficient_db, {"similarity_threshold": 0.55, "cache_key": "prompt"})
     await cache.store(
         prompt="How do I reverse a list in Python?",
         response="Use lst[::-1] or reversed(lst).",
@@ -52,8 +52,8 @@ async def test_semantic_cache_paraphrase_hit(finops_db, sync_db):
     assert "reversed" in new_req.context or "[::-1]" in new_req.context
 
 
-async def test_codebase_graph_symbol_recall(finops_db, sync_db):
-    graph = CodebaseGraph(finops_db, {"repo_paths": []})
+async def test_codebase_graph_symbol_recall(efficient_db, sync_db):
+    graph = CodebaseGraph(efficient_db, {"repo_paths": []})
     source = _SAMPLE_SOURCE.read_text(encoding="utf-8")
     n = await graph.index_file("repoI", "sample.py", source)
     assert n >= 2
@@ -70,8 +70,8 @@ async def test_codebase_graph_symbol_recall(finops_db, sync_db):
     assert "add" in symbols
 
 
-async def test_hybrid_retrieval_top_ranked(finops_db, sync_db):
-    retrieval = HybridRetrieval(finops_db, {"top_k": 2, "rrf_k": 60})
+async def test_hybrid_retrieval_top_ranked(efficient_db, sync_db):
+    retrieval = HybridRetrieval(efficient_db, {"top_k": 2, "rrf_k": 60})
     await retrieval.add_chunks("corpI", [
         {"text": "MongoDB is a document-oriented NoSQL database.",
          "source_file": "d.txt", "chunk_index": 0, "metadata": {}},
@@ -94,11 +94,11 @@ async def test_hybrid_retrieval_top_ranked(finops_db, sync_db):
     assert "document-oriented" in new_req.context
 
 
-async def test_agent_memory_recall(finops_db, sync_db, monkeypatch):
+async def test_agent_memory_recall(efficient_db, sync_db, monkeypatch):
     fake = MagicMock()
     fake.invoke.return_value = MagicMock(content="")
-    monkeypatch.setattr("finops.modules.agent_memory.ChatAnthropic", lambda **kw: fake)
-    memory = AgentMemory(finops_db, {"working_memory_turns": 20})
+    monkeypatch.setattr("efficient.modules.agent_memory.ChatAnthropic", lambda **kw: fake)
+    memory = AgentMemory(efficient_db, {"working_memory_turns": 20})
     await memory.store_turn("agentI", "sess", "My favorite language is Rust.", "Noted, Rust it is.")
     await memory.store_turn("agentI", "sess", "I also enjoy hiking on weekends.", "Great hobby.")
 
@@ -120,9 +120,9 @@ async def test_agent_memory_recall(finops_db, sync_db, monkeypatch):
     assert "Rust" in new_req.context
 
 
-async def test_end_to_end_complete_real_embeddings(finops_db, sync_db, monkeypatch):
-    from finops.daemon.config import save_config
-    await save_config(finops_db, {"modules": {
+async def test_end_to_end_complete_real_embeddings(efficient_db, sync_db, monkeypatch):
+    from efficient.daemon.config import save_config
+    await save_config(efficient_db, {"modules": {
         "codebase_graph": {"enabled": False},
         "semantic_cache": {"enabled": True, "similarity_threshold": 0.55},
         "agent_memory": {"enabled": False},
@@ -130,7 +130,7 @@ async def test_end_to_end_complete_real_embeddings(finops_db, sync_db, monkeypat
         "hybrid_retrieval": {"enabled": False},
     }})
     monkeypatch.setattr(
-        "finops.daemon.providers.call_llm",
+        "efficient.daemon.providers.call_llm",
         AsyncMock(return_value=("real answer", 80, 40)),
     )
 
@@ -147,7 +147,7 @@ async def test_end_to_end_complete_real_embeddings(finops_db, sync_db, monkeypat
         wait_for_queryable(sync_db[CACHE_ENTRIES], "cache_vector_index")
 
         spy = AsyncMock(return_value=("SHOULD NOT CALL", 1, 1))
-        monkeypatch.setattr("finops.daemon.providers.call_llm", spy)
+        monkeypatch.setattr("efficient.daemon.providers.call_llm", spy)
         second = await c.post("/complete", json=body)
         data = second.json()
         assert data["cache_hit"] is True

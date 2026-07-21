@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import AsyncMock
-from finops.mcp import server
+from efficient.mcp import server
 
 
 @pytest.fixture(autouse=True)

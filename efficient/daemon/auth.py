@@ -8,7 +8,7 @@ _EXEMPT_PREFIXES = ("/health", "/metrics", "/dashboard")
 
 
 async def require_token(request: Request) -> None:
-    expected = os.getenv("FINOPS_API_TOKEN", "")
+    expected = os.getenv("EFFICIENT_API_TOKEN", "")
     if not expected:
         return
     path = request.url.path
@@ -16,7 +16,7 @@ async def require_token(request: Request) -> None:
         return
     header = request.headers.get("authorization", "")
     if not header.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="missing or invalid bearer token (FINOPS_API_TOKEN)")
+        raise HTTPException(status_code=401, detail="missing or invalid bearer token (EFFICIENT_API_TOKEN)")
     provided = header[7:].strip()  # Remove "Bearer " prefix (7 chars)
     if not (provided and secrets.compare_digest(provided, expected)):
-        raise HTTPException(status_code=401, detail="missing or invalid bearer token (FINOPS_API_TOKEN)")
+        raise HTTPException(status_code=401, detail="missing or invalid bearer token (EFFICIENT_API_TOKEN)")

@@ -3,15 +3,15 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from fastapi import Depends, FastAPI, HTTPException
-from finops.daemon.auth import require_token
-from finops.daemon import schemas
-from finops.db.client import get_async_db, get_sync_db
-from finops.db.indexes import create_all_indexes
-from finops.daemon.config import load_config, save_config, validate_patch
-from finops.db.collections import CACHE_ENTRIES
-from finops.db.vector import vector_search
-from finops.daemon.strategies import get_strategy
-from finops.modules._base import OptimizeRequest
+from efficient.daemon.auth import require_token
+from efficient.daemon import schemas
+from efficient.db.client import get_async_db, get_sync_db
+from efficient.db.indexes import create_all_indexes
+from efficient.daemon.config import load_config, save_config, validate_patch
+from efficient.db.collections import CACHE_ENTRIES
+from efficient.db.vector import vector_search
+from efficient.daemon.strategies import get_strategy
+from efficient.modules._base import OptimizeRequest
 
 VERSION = "0.1.0"
 
@@ -46,7 +46,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="efficient Daemon", lifespan=lifespan, dependencies=[Depends(require_token)])
 
-from finops.daemon.dashboard_routes import router as dashboard_router
+from efficient.daemon.dashboard_routes import router as dashboard_router
 app.include_router(dashboard_router)
 
 
@@ -82,7 +82,7 @@ async def post_optimize(body: schemas.OptimizeBody):
     db = get_async_db()
     config = await load_config(db)
     strategy = get_strategy(body.strategy or config.get("strategy"))
-    from finops.daemon.router import ModulePipeline
+    from efficient.daemon.router import ModulePipeline
     pipeline = ModulePipeline(db, config.get("modules", {}), strategy)
     request = OptimizeRequest(
         prompt=body.prompt,
@@ -92,7 +92,7 @@ async def post_optimize(body: schemas.OptimizeBody):
         corpus_id=body.corpus_id,
     )
     result = await pipeline.run(request)
-    from finops.daemon.metrics import record_module_events
+    from efficient.daemon.metrics import record_module_events
     await record_module_events(db, result["module_results"])
     return result
 
@@ -102,7 +102,7 @@ async def post_complete(body: schemas.CompleteBody):
     db = get_async_db()
     config = await load_config(db)
     strategy = get_strategy(body.strategy or config.get("strategy"))
-    from finops.daemon.router import ModulePipeline
+    from efficient.daemon.router import ModulePipeline
     pipeline = ModulePipeline(db, config.get("modules", {}), strategy)
     request = OptimizeRequest(
         prompt=body.prompt,
@@ -112,7 +112,7 @@ async def post_complete(body: schemas.CompleteBody):
         corpus_id=body.corpus_id,
     )
     optimized = await pipeline.run(request)
-    from finops.daemon.metrics import record_module_events
+    from efficient.daemon.metrics import record_module_events
     await record_module_events(db, optimized["module_results"])
 
     if optimized["cache_hit"]:
@@ -125,7 +125,7 @@ async def post_complete(body: schemas.CompleteBody):
             "module_results": optimized["module_results"],
         }
 
-    from finops.daemon.providers import call_llm
+    from efficient.daemon.providers import call_llm
     response_text, input_tokens, output_tokens = await call_llm(
         provider=body.provider,
         model=body.model,
@@ -134,7 +134,7 @@ async def post_complete(body: schemas.CompleteBody):
     )
 
     cache_cfg = {**config.get("modules", {}).get("semantic_cache", {}), "cache_key": strategy.cache_key}
-    from finops.modules.semantic_cache import SemanticCache
+    from efficient.modules.semantic_cache import SemanticCache
     cache = SemanticCache(db, cache_cfg)
     await cache.store(
         prompt=request.prompt,
@@ -146,7 +146,7 @@ async def post_complete(body: schemas.CompleteBody):
         corpus_id=request.corpus_id or "",
     )
 
-    from finops.modules.agent_memory import AgentMemory
+    from efficient.modules.agent_memory import AgentMemory
     memory = AgentMemory(db, config.get("modules", {}).get("agent_memory", {}))
     await memory.store_turn(
         request.agent_id, body.session_id, request.prompt, response_text
@@ -199,7 +199,7 @@ async def cache_store(body: schemas.CacheStoreBody):
     cache_cfg = config.get("modules", {}).get("semantic_cache", {})
     strategy = get_strategy(config.get("strategy"))
     cache_cfg = {**cache_cfg, "cache_key": strategy.cache_key}
-    from finops.modules.semantic_cache import SemanticCache
+    from efficient.modules.semantic_cache import SemanticCache
     cache = SemanticCache(db, cache_cfg)
     await cache.store(
         prompt=body.prompt,
@@ -220,7 +220,7 @@ async def memory_retrieve(body: schemas.MemoryRetrieveBody):
     db = get_async_db()
     config = await load_config(db)
     mem_cfg = config.get("modules", {}).get("agent_memory", {})
-    from finops.modules.agent_memory import AgentMemory
+    from efficient.modules.agent_memory import AgentMemory
     memory = AgentMemory(db, mem_cfg)
     working = await memory._get_working_memory(agent_id)
     episodic = await memory._get_episodic_memory(agent_id, query)
@@ -237,7 +237,7 @@ async def memory_store(body: schemas.MemoryStoreBody):
     db = get_async_db()
     config = await load_config(db)
     mem_cfg = config.get("modules", {}).get("agent_memory", {})
-    from finops.modules.agent_memory import AgentMemory
+    from efficient.modules.agent_memory import AgentMemory
     memory = AgentMemory(db, mem_cfg)
     await memory.store_turn(agent_id, session_id, turn, response)
     return {"stored": True}
@@ -245,7 +245,7 @@ async def memory_store(body: schemas.MemoryStoreBody):
 
 def _allowed_index_roots(cg_cfg: dict) -> list[Path]:
     roots = [Path(p).resolve() for p in cg_cfg.get("repo_paths", [])]
-    env = os.getenv("FINOPS_ALLOWED_INDEX_ROOTS", "")
+    env = os.getenv("EFFICIENT_ALLOWED_INDEX_ROOTS", "")
     roots += [Path(p).resolve() for p in env.split(":") if p]
     return roots
 
@@ -263,9 +263,9 @@ async def codebase_index(body: schemas.CodebaseIndexBody):
         raise HTTPException(
             status_code=403,
             detail="path not under an allowed index root "
-                   "(configure modules.codebase_graph.repo_paths or FINOPS_ALLOWED_INDEX_ROOTS)",
+                   "(configure modules.codebase_graph.repo_paths or EFFICIENT_ALLOWED_INDEX_ROOTS)",
         )
-    from finops.modules.codebase_graph import CodebaseGraph
+    from efficient.modules.codebase_graph import CodebaseGraph
     graph = CodebaseGraph(db, cg_cfg)
     await graph.clear_repo(body.repo_id)
     files = 0
@@ -290,7 +290,7 @@ async def codebase_query(body: schemas.CodebaseQueryBody):
     db = get_async_db()
     config = await load_config(db)
     cg_cfg = config.get("modules", {}).get("codebase_graph", {})
-    from finops.modules.codebase_graph import CodebaseGraph
+    from efficient.modules.codebase_graph import CodebaseGraph
     graph = CodebaseGraph(db, cg_cfg)
     results = await graph.query(repo_id, query, k)
     out = [{
@@ -309,7 +309,7 @@ async def codebase_index_file(body: schemas.CodebaseIndexFileBody):
     db = get_async_db()
     config = await load_config(db)
     cg_cfg = config.get("modules", {}).get("codebase_graph", {})
-    from finops.modules.codebase_graph import CodebaseGraph
+    from efficient.modules.codebase_graph import CodebaseGraph
     graph = CodebaseGraph(db, cg_cfg)
     n = await graph.index_file(repo_id, file_path, source)
     return {"repo_id": repo_id, "file_path": file_path, "indexed_symbols": n}
@@ -322,7 +322,7 @@ async def codebase_references(body: schemas.CodebaseReferencesBody):
     db = get_async_db()
     config = await load_config(db)
     cg_cfg = config.get("modules", {}).get("codebase_graph", {})
-    from finops.modules.codebase_graph import CodebaseGraph
+    from efficient.modules.codebase_graph import CodebaseGraph
     graph = CodebaseGraph(db, cg_cfg)
     return {
         "repo_id": repo_id,
@@ -334,6 +334,6 @@ async def codebase_references(body: schemas.CodebaseReferencesBody):
 
 @app.get("/metrics")
 async def get_metrics():
-    from finops.daemon.metrics import aggregate_metrics
+    from efficient.daemon.metrics import aggregate_metrics
     db = get_async_db()
     return await aggregate_metrics(db)

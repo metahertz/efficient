@@ -1,24 +1,24 @@
 import pytest
 from unittest.mock import MagicMock
 from httpx import AsyncClient, ASGITransport
-from finops.daemon.app import app
+from efficient.daemon.app import app
 
 
 @pytest.fixture(autouse=True)
 def mock_embed(monkeypatch):
-    monkeypatch.setattr("finops.modules.agent_memory.embed_query", lambda t: [0.1] * 1024)
-    monkeypatch.setattr("finops.modules.agent_memory.embed_documents", lambda ts: [[0.1] * 1024] * len(ts))
+    monkeypatch.setattr("efficient.modules.agent_memory.embed_query", lambda t: [0.1] * 1024)
+    monkeypatch.setattr("efficient.modules.agent_memory.embed_documents", lambda ts: [[0.1] * 1024] * len(ts))
 
 
 @pytest.fixture(autouse=True)
 def mock_llm(monkeypatch):
     fake = MagicMock()
     fake.invoke.return_value = MagicMock(content="")
-    monkeypatch.setattr("finops.modules.agent_memory.ChatAnthropic", lambda **kw: fake)
+    monkeypatch.setattr("efficient.modules.agent_memory.ChatAnthropic", lambda **kw: fake)
 
 
 @pytest.fixture
-async def client(finops_db):
+async def client(efficient_db):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         yield c
 

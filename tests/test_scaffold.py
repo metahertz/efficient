@@ -6,17 +6,17 @@ from pathlib import Path
 
 def test_imports():
     """Test that all package namespaces can be imported."""
-    import finops
-    import finops.db
-    import finops.modules
-    import finops.daemon
-    import finops.cli
+    import efficient
+    import efficient.db
+    import efficient.modules
+    import efficient.daemon
+    import efficient.cli
     assert True
 
 
 def test_cli_main_exists():
     """Test that the CLI main module exists."""
-    from finops.cli import main
+    from efficient.cli import main
     assert hasattr(main, 'cli')
 
 
@@ -40,4 +40,4 @@ def test_pyproject_settings():
     # Check required settings
     assert config['project']['requires-python'] == '>=3.11'
     assert config['tool']['pytest']['ini_options']['asyncio_mode'] == 'auto'
-    assert config['project']['scripts'].get('efficient') == 'finops.cli.main:cli'
+    assert config['project']['scripts'].get('efficient') == 'efficient.cli.main:cli'

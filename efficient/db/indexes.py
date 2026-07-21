@@ -1,7 +1,7 @@
 from pymongo import ASCENDING, TEXT
 from pymongo.database import Database
 from pymongo.errors import OperationFailure
-from finops.db.collections import (
+from efficient.db.collections import (
     CODEBASE_NODES, CACHE_ENTRIES, WORKING_MEMORY,
     EPISODIC_MEMORY, SEMANTIC_MEMORY, CORPUS_CHUNKS,
     COMPRESSION_STATS, BENCHMARK_RUNS, REQUEST_LOG,

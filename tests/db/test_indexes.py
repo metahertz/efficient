@@ -1,7 +1,7 @@
 import pytest
 from pymongo.errors import DuplicateKeyError
-from finops.db.indexes import create_all_indexes
-from finops.db.collections import CACHE_ENTRIES, EPISODIC_MEMORY, CORPUS_CHUNKS
+from efficient.db.indexes import create_all_indexes
+from efficient.db.collections import CACHE_ENTRIES, EPISODIC_MEMORY, CORPUS_CHUNKS
 
 
 def test_create_indexes_is_idempotent(sync_db):

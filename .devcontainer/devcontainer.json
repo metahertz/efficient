@@ -1,5 +1,5 @@
 {
-  "name": "fullFinOps-AI",
+  "name": "fullEfficient-AI",
   "dockerComposeFile": ["../docker-compose.yml"],
   "service": "dev",
   "workspaceFolder": "/workspace",

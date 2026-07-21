@@ -4,8 +4,8 @@ the lazily-initialized embedding model / prompt compressor singletons."""
 import threading
 from concurrent.futures import ThreadPoolExecutor
 
-import finops.modules.context_compressor as context_compressor
-import finops.modules.embeddings as embeddings
+import efficient.modules.context_compressor as context_compressor
+import efficient.modules.embeddings as embeddings
 
 
 def test_get_model_thread_safe_single_construction(monkeypatch):

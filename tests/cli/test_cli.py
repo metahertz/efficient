@@ -1,7 +1,7 @@
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 from click.testing import CliRunner
-from finops.cli.main import cli
+from efficient.cli.main import cli
 
 
 def test_status_when_daemon_down():
@@ -17,7 +17,7 @@ def test_start_writes_pid_file(tmp_path):
     mock_proc = MagicMock()
     mock_proc.pid = 12345
     runner = CliRunner()
-    with patch("finops.cli.main.PID_FILE", pid_file), \
+    with patch("efficient.cli.main.PID_FILE", pid_file), \
          patch("subprocess.Popen", return_value=mock_proc):
         result = runner.invoke(cli, ["start"])
     assert result.exit_code == 0
@@ -29,7 +29,7 @@ def test_start_blocks_if_pid_file_exists(tmp_path):
     pid_file = tmp_path / "daemon.pid"
     pid_file.write_text("99999")
     runner = CliRunner()
-    with patch("finops.cli.main.PID_FILE", pid_file), \
+    with patch("efficient.cli.main.PID_FILE", pid_file), \
          patch("os.kill", return_value=None):  # process appears alive
         result = runner.invoke(cli, ["start"])
     assert "already running" in result.output
@@ -41,7 +41,7 @@ def test_start_clears_stale_pid_file(tmp_path):
     mock_proc = MagicMock()
     mock_proc.pid = 12345
     runner = CliRunner()
-    with patch("finops.cli.main.PID_FILE", pid_file), \
+    with patch("efficient.cli.main.PID_FILE", pid_file), \
          patch("os.kill", side_effect=[ProcessLookupError, None]), \
          patch("subprocess.Popen", return_value=mock_proc):
         result = runner.invoke(cli, ["start"])
@@ -53,7 +53,7 @@ def test_stop_removes_pid_file(tmp_path):
     pid_file = tmp_path / "daemon.pid"
     pid_file.write_text("12345")
     runner = CliRunner()
-    with patch("finops.cli.main.PID_FILE", pid_file), \
+    with patch("efficient.cli.main.PID_FILE", pid_file), \
          patch("os.kill"):
         result = runner.invoke(cli, ["stop"])
     assert not pid_file.exists()
@@ -63,7 +63,7 @@ def test_stop_removes_pid_file(tmp_path):
 def test_stop_when_no_daemon_running(tmp_path):
     pid_file = tmp_path / "daemon.pid"
     runner = CliRunner()
-    with patch("finops.cli.main.PID_FILE", pid_file):
+    with patch("efficient.cli.main.PID_FILE", pid_file):
         result = runner.invoke(cli, ["stop"])
     assert "No daemon running" in result.output
 
@@ -87,9 +87,9 @@ def test_status_shows_module_state():
 
 
 def test_start_binds_localhost_by_default(tmp_path, monkeypatch):
-    import finops.cli.main as cli_main
+    import efficient.cli.main as cli_main
     monkeypatch.setattr(cli_main, "PID_FILE", tmp_path / "daemon.pid")
-    monkeypatch.delenv("FINOPS_HOST", raising=False)
+    monkeypatch.delenv("EFFICIENT_HOST", raising=False)
     calls = {}
 
     class FakeProc:

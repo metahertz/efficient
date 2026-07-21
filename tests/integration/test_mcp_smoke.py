@@ -12,8 +12,8 @@ pytestmark = pytest.mark.integration
 async def _run_session(daemon_url, callback):
     params = StdioServerParameters(
         command=sys.executable,
-        args=["-m", "finops.mcp.server"],
-        env={**os.environ, "FINOPS_DAEMON_URL": daemon_url},
+        args=["-m", "efficient.mcp.server"],
+        env={**os.environ, "EFFICIENT_DAEMON_URL": daemon_url},
     )
     async with stdio_client(params) as (read, write):
         async with ClientSession(read, write) as session:

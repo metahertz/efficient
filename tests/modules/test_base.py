@@ -1,5 +1,5 @@
 import pytest
-from finops.modules._base import BaseModule, ModuleResult, OptimizeRequest
+from efficient.modules._base import BaseModule, ModuleResult, OptimizeRequest
 
 
 class PassthroughModule(BaseModule):

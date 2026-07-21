@@ -5,7 +5,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 docker compose up -d --wait mongodb-test
-export FINOPS_TEST_MONGODB_URI="mongodb://localhost:27018/?directConnection=true"
+export EFFICIENT_TEST_MONGODB_URI="mongodb://localhost:27018/?directConnection=true"
 
 if [ "${1:-}" = "--integration" ]; then
     exec venv/bin/python -m pytest -v

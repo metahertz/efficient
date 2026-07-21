@@ -7,8 +7,8 @@ from datetime import datetime, timezone
 from llmlingua import PromptCompressor
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from finops.modules._base import BaseModule, OptimizeRequest, ModuleResult
-from finops.db.collections import COMPRESSION_STATS
+from efficient.modules._base import BaseModule, OptimizeRequest, ModuleResult
+from efficient.db.collections import COMPRESSION_STATS
 
 _MODEL_NAME = "microsoft/llmlingua-2-bert-base-multilingual-cased-meetingbank"
 _compressor: PromptCompressor | None = None

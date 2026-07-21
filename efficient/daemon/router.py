@@ -1,10 +1,10 @@
-from finops.daemon.strategies import get_strategy, Strategy
-from finops.modules._base import OptimizeRequest, ModuleResult
-from finops.modules.codebase_graph import CodebaseGraph
-from finops.modules.semantic_cache import SemanticCache
-from finops.modules.agent_memory import AgentMemory
-from finops.modules.context_compressor import ContextCompressor
-from finops.modules.hybrid_retrieval import HybridRetrieval
+from efficient.daemon.strategies import get_strategy, Strategy
+from efficient.modules._base import OptimizeRequest, ModuleResult
+from efficient.modules.codebase_graph import CodebaseGraph
+from efficient.modules.semantic_cache import SemanticCache
+from efficient.modules.agent_memory import AgentMemory
+from efficient.modules.context_compressor import ContextCompressor
+from efficient.modules.hybrid_retrieval import HybridRetrieval
 
 _MODULE_CLASSES = {
     "codebase_graph":     CodebaseGraph,

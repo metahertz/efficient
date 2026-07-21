@@ -8,10 +8,10 @@ import httpx
 
 
 def _daemon_url() -> str:
-    return os.getenv("FINOPS_DAEMON_URL", "http://localhost:7432")
+    return os.getenv("EFFICIENT_DAEMON_URL", "http://localhost:7432")
 
 
-PID_FILE = Path.home() / ".finops" / "daemon.pid"
+PID_FILE = Path.home() / ".efficient" / "daemon.pid"
 
 
 @click.group()
@@ -33,10 +33,10 @@ def start():
             click.echo(f"Removing stale PID file (process {pid} is gone).")
             PID_FILE.unlink(missing_ok=True)
     PID_FILE.parent.mkdir(parents=True, exist_ok=True)
-    port = os.getenv("FINOPS_PORT", "7432")
-    host = os.getenv("FINOPS_HOST", "127.0.0.1")
+    port = os.getenv("EFFICIENT_PORT", "7432")
+    host = os.getenv("EFFICIENT_HOST", "127.0.0.1")
     proc = subprocess.Popen(
-        ["uvicorn", "finops.daemon.app:app", "--host", host, "--port", port],
+        ["uvicorn", "efficient.daemon.app:app", "--host", host, "--port", port],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
@@ -76,11 +76,11 @@ def status():
 @cli.command()
 def warmup():
     """Download and cache local models (embeddings + compressor)."""
-    from finops.modules.embeddings import _get_model
+    from efficient.modules.embeddings import _get_model
     click.echo("Loading embedding model (voyageai/voyage-4-nano)...")
     _get_model()
     click.echo("  embedding model ready.")
-    from finops.modules.context_compressor import _get_compressor
+    from efficient.modules.context_compressor import _get_compressor
     click.echo("Loading compressor model (LLMLingua-2)...")
     _get_compressor()
     click.echo("  compressor model ready.")

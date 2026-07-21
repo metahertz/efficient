@@ -6,10 +6,10 @@ import tree_sitter_python as tspython
 from tree_sitter import Language, Parser
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from finops.modules._base import BaseModule, OptimizeRequest, ModuleResult
-from finops.modules.embeddings import embed_query, embed_documents
-from finops.db.collections import CODEBASE_NODES
-from finops.db.vector import vector_search
+from efficient.modules._base import BaseModule, OptimizeRequest, ModuleResult
+from efficient.modules.embeddings import embed_query, embed_documents
+from efficient.db.collections import CODEBASE_NODES
+from efficient.db.vector import vector_search
 
 _PY_LANGUAGE = Language(tspython.language())
 _PARSER = Parser(_PY_LANGUAGE)

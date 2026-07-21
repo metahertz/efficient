@@ -1,6 +1,6 @@
 import pytest
 import dataclasses
-from finops.daemon.strategies import (
+from efficient.daemon.strategies import (
     Strategy, get_strategy, list_strategies,
     COMPOSE_THEN_COMPRESS, CACHE_FIRST_AGGRESSIVE,
 )
@@ -46,5 +46,5 @@ def test_aggressive_strategy_overrides():
 
 
 def test_config_default_has_strategy():
-    from finops.daemon.config import DEFAULT_CONFIG
+    from efficient.daemon.config import DEFAULT_CONFIG
     assert DEFAULT_CONFIG["strategy"] == "compose_then_compress"

@@ -1,7 +1,7 @@
 import pytest
 from fastapi import FastAPI
 from httpx import AsyncClient, ASGITransport
-from finops.daemon.dashboard_routes import router
+from efficient.daemon.dashboard_routes import router
 
 
 @pytest.fixture

@@ -1,10 +1,10 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 from httpx import AsyncClient, ASGITransport
-from finops.daemon.app import app
-from finops.modules._base import OptimizeRequest, ModuleResult
-from finops.daemon.strategies import COMPOSE_THEN_COMPRESS, Strategy
-from finops.db.collections import REQUEST_LOG
+from efficient.daemon.app import app
+from efficient.modules._base import OptimizeRequest, ModuleResult
+from efficient.daemon.strategies import COMPOSE_THEN_COMPRESS, Strategy
+from efficient.db.collections import REQUEST_LOG
 
 
 def _make_append_module(name, section_label):
@@ -47,14 +47,14 @@ def _make_passthrough_module(name):
 
 
 @pytest.fixture
-async def client(finops_db):
+async def client(efficient_db):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         yield c
 
 
-async def test_optimize_returns_shape_with_strategy(client, finops_db):
-    from finops.daemon.config import save_config
-    await save_config(finops_db, {"modules": {
+async def test_optimize_returns_shape_with_strategy(client, efficient_db):
+    from efficient.daemon.config import save_config
+    await save_config(efficient_db, {"modules": {
         "codebase_graph": {"enabled": False}, "semantic_cache": {"enabled": False},
         "agent_memory": {"enabled": False}, "context_compressor": {"enabled": False},
         "hybrid_retrieval": {"enabled": False},
@@ -73,9 +73,9 @@ async def test_optimize_returns_shape_with_strategy(client, finops_db):
     assert data["module_results"] == []
 
 
-async def test_optimize_preserves_prompt(client, finops_db):
-    from finops.daemon.config import save_config
-    await save_config(finops_db, {"modules": {
+async def test_optimize_preserves_prompt(client, efficient_db):
+    from efficient.daemon.config import save_config
+    await save_config(efficient_db, {"modules": {
         "codebase_graph": {"enabled": False}, "semantic_cache": {"enabled": False},
         "agent_memory": {"enabled": False}, "context_compressor": {"enabled": False},
         "hybrid_retrieval": {"enabled": False},
@@ -87,8 +87,8 @@ async def test_optimize_preserves_prompt(client, finops_db):
     assert resp.json()["optimized_prompt"] == "unique test prompt xyz"
 
 
-async def test_pipeline_short_circuits_on_cache_hit(finops_db):
-    from finops.daemon.router import ModulePipeline
+async def test_pipeline_short_circuits_on_cache_hit(efficient_db):
+    from efficient.daemon.router import ModulePipeline
     cache_mod = _make_cache_hit_module()
     other = _make_passthrough_module("context_compressor")
     pipeline = ModulePipeline.__new__(ModulePipeline)
@@ -104,8 +104,8 @@ async def test_pipeline_short_circuits_on_cache_hit(finops_db):
     other.process.assert_not_called()
 
 
-async def test_pipeline_skips_disabled_modules(finops_db):
-    from finops.daemon.router import ModulePipeline
+async def test_pipeline_skips_disabled_modules(efficient_db):
+    from efficient.daemon.router import ModulePipeline
     mod = _make_passthrough_module("context_compressor")
     pipeline = ModulePipeline.__new__(ModulePipeline)
     pipeline._strategy = COMPOSE_THEN_COMPRESS
@@ -117,8 +117,8 @@ async def test_pipeline_skips_disabled_modules(finops_db):
     assert result["tokens_saved"] == 0
 
 
-async def test_pipeline_composes_both_augmenters(finops_db):
-    from finops.daemon.router import ModulePipeline
+async def test_pipeline_composes_both_augmenters(efficient_db):
+    from efficient.daemon.router import ModulePipeline
     graph = _make_append_module("codebase_graph", "Relevant Code")
     memory = _make_append_module("agent_memory", "Memory")
     strat = Strategy(name="two_aug", order=("codebase_graph", "agent_memory"),
@@ -137,8 +137,8 @@ async def test_pipeline_composes_both_augmenters(finops_db):
     assert len(result["module_results"]) == 2
 
 
-async def test_optimize_persists_module_events(client, finops_db, monkeypatch):
-    from finops.db.collections import REQUEST_LOG
+async def test_optimize_persists_module_events(client, efficient_db, monkeypatch):
+    from efficient.db.collections import REQUEST_LOG
 
     class _FakePipeline:
         def __init__(self, *a, **kw):
@@ -157,17 +157,17 @@ async def test_optimize_persists_module_events(client, finops_db, monkeypatch):
                 ],
             }
 
-    monkeypatch.setattr("finops.daemon.router.ModulePipeline", _FakePipeline)
+    monkeypatch.setattr("efficient.daemon.router.ModulePipeline", _FakePipeline)
     resp = await client.post("/optimize", json={"prompt": "p", "context": "c", "agent_id": "a1", "framework": "test"})
     assert resp.status_code == 200
-    count = await finops_db[REQUEST_LOG].count_documents({"module": "codebase_graph"})
+    count = await efficient_db[REQUEST_LOG].count_documents({"module": "codebase_graph"})
     assert count == 1
 
 
-async def test_optimize_logs_module_events(client, finops_db):
-    from finops.daemon.config import save_config
+async def test_optimize_logs_module_events(client, efficient_db):
+    from efficient.daemon.config import save_config
     # All modules disabled → module_results empty → record_module_events no-ops.
-    await save_config(finops_db, {"modules": {
+    await save_config(efficient_db, {"modules": {
         "codebase_graph": {"enabled": False}, "semantic_cache": {"enabled": False},
         "agent_memory": {"enabled": False}, "context_compressor": {"enabled": False},
         "hybrid_retrieval": {"enabled": False},
@@ -179,4 +179,4 @@ async def test_optimize_logs_module_events(client, finops_db):
     assert resp.status_code == 200
     assert resp.json()["module_results"] == []
     # No module ran, so request_log stays empty (wiring path must not crash).
-    assert await finops_db[REQUEST_LOG].count_documents({}) == 0
+    assert await efficient_db[REQUEST_LOG].count_documents({}) == 0

@@ -3,16 +3,16 @@ import time
 import pytest
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo import MongoClient
-from finops.db.client import reset_clients
+from efficient.db.client import reset_clients
 
-MONGO_URI = os.getenv("FINOPS_TEST_MONGODB_URI", "mongodb://localhost:27017/?directConnection=true")
-TEST_DB   = "finops_test"
+MONGO_URI = os.getenv("EFFICIENT_TEST_MONGODB_URI", "mongodb://localhost:27017/?directConnection=true")
+TEST_DB   = "efficient_test"
 
 
 @pytest.fixture(scope="session", autouse=True)
 def set_test_env():
-    os.environ["FINOPS_MONGODB_URI"] = MONGO_URI
-    os.environ["FINOPS_DB_NAME"]     = TEST_DB
+    os.environ["EFFICIENT_MONGODB_URI"] = MONGO_URI
+    os.environ["EFFICIENT_DB_NAME"]     = TEST_DB
 
 
 @pytest.fixture(scope="session")
@@ -34,7 +34,7 @@ def sync_db(sync_client):
 @pytest.fixture
 async def async_client():
     reset_clients()
-    os.environ["FINOPS_DB_NAME"] = TEST_DB
+    os.environ["EFFICIENT_DB_NAME"] = TEST_DB
     client = AsyncIOMotorClient(MONGO_URI)
     yield client
     await client.drop_database(TEST_DB)
@@ -43,10 +43,10 @@ async def async_client():
 
 
 @pytest.fixture
-async def finops_db(async_client, sync_db):
-    from finops.db.indexes import create_all_indexes
+async def efficient_db(async_client, sync_db):
+    from efficient.db.indexes import create_all_indexes
     create_all_indexes(sync_db)
-    yield async_client[os.environ["FINOPS_DB_NAME"]]
+    yield async_client[os.environ["EFFICIENT_DB_NAME"]]
 
 
 def wait_for_queryable(collection, index_name, timeout=90):
