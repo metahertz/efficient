@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
+from finops.daemon.auth import require_token
 from finops.db.client import get_async_db, get_sync_db
 from finops.db.indexes import create_all_indexes
 from finops.daemon.config import load_config, save_config
@@ -40,7 +41,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="efficient Daemon", lifespan=lifespan)
+app = FastAPI(title="efficient Daemon", lifespan=lifespan, dependencies=[Depends(require_token)])
 
 from finops.daemon.dashboard_routes import router as dashboard_router
 app.include_router(dashboard_router)
