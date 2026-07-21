@@ -1,4 +1,5 @@
 import asyncio
+import threading
 import time
 import uuid
 from datetime import datetime, timezone
@@ -11,16 +12,19 @@ from finops.db.collections import COMPRESSION_STATS
 
 _MODEL_NAME = "microsoft/llmlingua-2-bert-base-multilingual-cased-meetingbank"
 _compressor: PromptCompressor | None = None
+_compressor_lock = threading.Lock()
 
 
 def _get_compressor() -> PromptCompressor:
     global _compressor
     if _compressor is None:
-        _compressor = PromptCompressor(
-            model_name=_MODEL_NAME,
-            use_llmlingua2=True,
-            device_map="cpu",
-        )
+        with _compressor_lock:
+            if _compressor is None:
+                _compressor = PromptCompressor(
+                    model_name=_MODEL_NAME,
+                    use_llmlingua2=True,
+                    device_map="cpu",
+                )
     return _compressor
 
 
