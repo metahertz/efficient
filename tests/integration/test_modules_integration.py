@@ -1,3 +1,6 @@
+import asyncio
+import time
+
 import pytest
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
@@ -36,7 +39,14 @@ async def test_semantic_cache_paraphrase_hit(finops_db, sync_db):
         agent_id="a1",
         framework="test",
     )
-    new_req, result = await cache.process(req)
+    # queryable covers the index, not doc ingest — mongot needs ~2s of
+    # steady-state sync before a just-stored entry is searchable.
+    deadline = time.time() + 30
+    while True:
+        new_req, result = await cache.process(req)
+        if result.short_circuit or time.time() > deadline:
+            break
+        await asyncio.sleep(1)
     print(result.detail)
     assert result.short_circuit is True
     assert "reversed" in new_req.context or "[::-1]" in new_req.context
@@ -48,9 +58,15 @@ async def test_codebase_graph_symbol_recall(finops_db, sync_db):
     n = await graph.index_file("repoI", "sample.py", source)
     assert n >= 2
     wait_for_queryable(sync_db[CODEBASE_NODES], "codebase_vector_index")
-    results = await graph.query("repoI", "function that adds two numbers", k=5)
-    print([r["symbol"] for r in results])
-    symbols = [r["symbol"] for r in results]
+    # queryable covers the index, not doc ingest — poll for the fresh symbols.
+    deadline = time.time() + 30
+    while True:
+        results = await graph.query("repoI", "function that adds two numbers", k=5)
+        symbols = [r["symbol"] for r in results]
+        if "add" in symbols or time.time() > deadline:
+            break
+        await asyncio.sleep(1)
+    print(symbols)
     assert "add" in symbols
 
 

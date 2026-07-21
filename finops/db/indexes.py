@@ -1,5 +1,6 @@
 from pymongo import ASCENDING, TEXT
 from pymongo.database import Database
+from pymongo.errors import OperationFailure
 from finops.db.collections import (
     CODEBASE_NODES, CACHE_ENTRIES, WORKING_MEMORY,
     EPISODIC_MEMORY, SEMANTIC_MEMORY, CORPUS_CHUNKS,
@@ -24,16 +25,10 @@ def _ensure_collections(db: Database) -> None:
             db.create_collection(name)
 
 
-def _search_index_exists(collection, name: str) -> bool:
-    return any(idx["name"] == name for idx in collection.list_search_indexes())
-
-
 def _create_vector_index(
     collection, name: str, field: str = "embedding",
     filter_paths: list[str] | None = None,
 ) -> None:
-    if _search_index_exists(collection, name):
-        return
     fields = [{
         "type": "vector",
         "path": field,
@@ -42,11 +37,21 @@ def _create_vector_index(
     }]
     for path in (filter_paths or []):
         fields.append({"type": "filter", "path": path})
-    collection.create_search_index({
-        "name": name,
-        "type": "vectorSearch",
-        "definition": {"fields": fields},
-    })
+    # Deliberately no exists-precheck: right after a collection drop, mongot
+    # briefly lists the old collection's search indexes, so check-then-act
+    # skips the create and leaves the namespace with no index at all.
+    # Duplicate creates are a no-op on Atlas Local; on deployments that
+    # reject duplicates we tolerate the error instead.
+    try:
+        collection.create_search_index({
+            "name": name,
+            "type": "vectorSearch",
+            "definition": {"fields": fields},
+        })
+    except OperationFailure as exc:
+        message = str(exc).lower()
+        if "duplicate" not in message and "already exists" not in message:
+            raise
 
 
 def create_all_indexes(db: Database) -> None:
