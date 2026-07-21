@@ -1,10 +1,13 @@
+import os
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
-from fastapi import Depends, FastAPI
+from pathlib import Path
+from fastapi import Depends, FastAPI, HTTPException
 from finops.daemon.auth import require_token
+from finops.daemon import schemas
 from finops.db.client import get_async_db, get_sync_db
 from finops.db.indexes import create_all_indexes
-from finops.daemon.config import load_config, save_config
+from finops.daemon.config import load_config, save_config, validate_patch
 from finops.db.collections import CACHE_ENTRIES
 from finops.db.vector import vector_search
 from finops.daemon.strategies import get_strategy
@@ -63,6 +66,11 @@ async def get_config():
 @app.put("/config")
 async def put_config(patch: dict):
     patch.pop("_id", None)
+    patch.pop("updated_at", None)
+    try:
+        validate_patch(patch)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
     db = get_async_db()
     config = await save_config(db, patch)
     config.pop("_id", None)
@@ -70,18 +78,18 @@ async def put_config(patch: dict):
 
 
 @app.post("/optimize")
-async def post_optimize(body: dict):
+async def post_optimize(body: schemas.OptimizeBody):
     db = get_async_db()
     config = await load_config(db)
-    strategy = get_strategy(body.get("strategy") or config.get("strategy"))
+    strategy = get_strategy(body.strategy or config.get("strategy"))
     from finops.daemon.router import ModulePipeline
     pipeline = ModulePipeline(db, config.get("modules", {}), strategy)
     request = OptimizeRequest(
-        prompt=body.get("prompt", ""),
-        context=body.get("context", ""),
-        agent_id=body.get("agent_id", "default"),
-        framework=body.get("framework", "unknown"),
-        corpus_id=body.get("corpus_id"),
+        prompt=body.prompt,
+        context=body.context,
+        agent_id=body.agent_id,
+        framework=body.framework,
+        corpus_id=body.corpus_id,
     )
     result = await pipeline.run(request)
     from finops.daemon.metrics import record_module_events
@@ -90,18 +98,18 @@ async def post_optimize(body: dict):
 
 
 @app.post("/complete")
-async def post_complete(body: dict):
+async def post_complete(body: schemas.CompleteBody):
     db = get_async_db()
     config = await load_config(db)
-    strategy = get_strategy(body.get("strategy") or config.get("strategy"))
+    strategy = get_strategy(body.strategy or config.get("strategy"))
     from finops.daemon.router import ModulePipeline
     pipeline = ModulePipeline(db, config.get("modules", {}), strategy)
     request = OptimizeRequest(
-        prompt=body.get("prompt", ""),
-        context=body.get("context", ""),
-        agent_id=body.get("agent_id", "default"),
-        framework=body.get("framework", "unknown"),
-        corpus_id=body.get("corpus_id"),
+        prompt=body.prompt,
+        context=body.context,
+        agent_id=body.agent_id,
+        framework=body.framework,
+        corpus_id=body.corpus_id,
     )
     optimized = await pipeline.run(request)
     from finops.daemon.metrics import record_module_events
@@ -119,8 +127,8 @@ async def post_complete(body: dict):
 
     from finops.daemon.providers import call_llm
     response_text, input_tokens, output_tokens = await call_llm(
-        provider=body.get("provider", "anthropic"),
-        model=body.get("model", ""),
+        provider=body.provider,
+        model=body.model,
         prompt=optimized["optimized_prompt"],
         context=optimized["optimized_context"],
     )
@@ -132,7 +140,7 @@ async def post_complete(body: dict):
         prompt=request.prompt,
         response=response_text,
         framework=request.framework,
-        model=body.get("model", ""),
+        model=body.model,
         tokens_saved=input_tokens + output_tokens,
         agent_id=request.agent_id,
         corpus_id=request.corpus_id or "",
@@ -141,7 +149,7 @@ async def post_complete(body: dict):
     from finops.modules.agent_memory import AgentMemory
     memory = AgentMemory(db, config.get("modules", {}).get("agent_memory", {}))
     await memory.store_turn(
-        request.agent_id, body.get("session_id", "default"), request.prompt, response_text
+        request.agent_id, body.session_id, request.prompt, response_text
     )
 
     return {
@@ -185,7 +193,7 @@ async def cache_lookup(prompt_hash: str, embedding: list[float] | None = None):
 
 
 @app.post("/cache/store")
-async def cache_store(body: dict):
+async def cache_store(body: schemas.CacheStoreBody):
     db = get_async_db()
     config = await load_config(db)
     cache_cfg = config.get("modules", {}).get("semantic_cache", {})
@@ -194,21 +202,21 @@ async def cache_store(body: dict):
     from finops.modules.semantic_cache import SemanticCache
     cache = SemanticCache(db, cache_cfg)
     await cache.store(
-        prompt=body.get("prompt", ""),
-        response=body.get("response", ""),
-        framework=body.get("framework", "unknown"),
-        model=body.get("model", ""),
-        tokens_saved=int(body.get("tokens_saved", 0)),
-        agent_id=body.get("agent_id", ""),
-        corpus_id=body.get("corpus_id", ""),
+        prompt=body.prompt,
+        response=body.response,
+        framework=body.framework,
+        model=body.model,
+        tokens_saved=body.tokens_saved,
+        agent_id=body.agent_id,
+        corpus_id=body.corpus_id,
     )
     return {"stored": True}
 
 
 @app.post("/memory/retrieve")
-async def memory_retrieve(body: dict):
-    agent_id = body.get("agent_id", "default")
-    query = body.get("query", "")
+async def memory_retrieve(body: schemas.MemoryRetrieveBody):
+    agent_id = body.agent_id
+    query = body.query
     db = get_async_db()
     config = await load_config(db)
     mem_cfg = config.get("modules", {}).get("agent_memory", {})
@@ -221,11 +229,11 @@ async def memory_retrieve(body: dict):
 
 
 @app.post("/memory/store")
-async def memory_store(body: dict):
-    agent_id = body.get("agent_id", "default")
-    session_id = body.get("session_id", "default")
-    turn = body.get("turn", "")
-    response = body.get("response", "")
+async def memory_store(body: schemas.MemoryStoreBody):
+    agent_id = body.agent_id
+    session_id = body.session_id
+    turn = body.turn
+    response = body.response
     db = get_async_db()
     config = await load_config(db)
     mem_cfg = config.get("modules", {}).get("agent_memory", {})
@@ -235,20 +243,31 @@ async def memory_store(body: dict):
     return {"stored": True}
 
 
+def _allowed_index_roots(cg_cfg: dict) -> list[Path]:
+    roots = [Path(p).resolve() for p in cg_cfg.get("repo_paths", [])]
+    env = os.getenv("FINOPS_ALLOWED_INDEX_ROOTS", "")
+    roots += [Path(p).resolve() for p in env.split(":") if p]
+    return roots
+
+
 @app.post("/codebase/index")
-async def codebase_index(body: dict):
-    from pathlib import Path
-    repo_id = body.get("repo_id", "default")
-    path = body.get("path", "")
+async def codebase_index(body: schemas.CodebaseIndexBody):
     db = get_async_db()
     config = await load_config(db)
     cg_cfg = config.get("modules", {}).get("codebase_graph", {})
+    root = Path(body.path).resolve() if body.path else None
+    if root is None or not root.is_dir():
+        return {"repo_id": body.repo_id, "indexed_files": 0, "indexed_symbols": 0}
+    allowed = _allowed_index_roots(cg_cfg)
+    if not any(root == r or root.is_relative_to(r) for r in allowed):
+        raise HTTPException(
+            status_code=403,
+            detail="path not under an allowed index root "
+                   "(configure modules.codebase_graph.repo_paths or FINOPS_ALLOWED_INDEX_ROOTS)",
+        )
     from finops.modules.codebase_graph import CodebaseGraph
     graph = CodebaseGraph(db, cg_cfg)
-    root = Path(path)
-    if not path or not root.is_dir():
-        return {"repo_id": repo_id, "indexed_files": 0, "indexed_symbols": 0}
-    await graph.clear_repo(repo_id)
+    await graph.clear_repo(body.repo_id)
     files = 0
     symbols = 0
     for py in root.rglob("*.py"):
@@ -256,18 +275,18 @@ async def codebase_index(body: dict):
             source = py.read_text(encoding="utf-8")
         except Exception:
             continue
-        n = await graph.index_file(repo_id, str(py.relative_to(root)), source)
+        n = await graph.index_file(body.repo_id, str(py.relative_to(root)), source)
         if n:
             files += 1
             symbols += n
-    return {"repo_id": repo_id, "indexed_files": files, "indexed_symbols": symbols}
+    return {"repo_id": body.repo_id, "indexed_files": files, "indexed_symbols": symbols}
 
 
 @app.post("/codebase/query")
-async def codebase_query(body: dict):
-    repo_id = body.get("repo_id", "default")
-    query = body.get("query", "")
-    k = int(body.get("k", 5))
+async def codebase_query(body: schemas.CodebaseQueryBody):
+    repo_id = body.repo_id
+    query = body.query
+    k = body.k
     db = get_async_db()
     config = await load_config(db)
     cg_cfg = config.get("modules", {}).get("codebase_graph", {})
@@ -283,10 +302,10 @@ async def codebase_query(body: dict):
 
 
 @app.post("/codebase/index-file")
-async def codebase_index_file(body: dict):
-    repo_id = body.get("repo_id", "default")
-    file_path = body.get("file_path", "")
-    source = body.get("source", "")
+async def codebase_index_file(body: schemas.CodebaseIndexFileBody):
+    repo_id = body.repo_id
+    file_path = body.file_path
+    source = body.source
     db = get_async_db()
     config = await load_config(db)
     cg_cfg = config.get("modules", {}).get("codebase_graph", {})
@@ -297,9 +316,9 @@ async def codebase_index_file(body: dict):
 
 
 @app.post("/codebase/references")
-async def codebase_references(body: dict):
-    repo_id = body.get("repo_id", "default")
-    symbol = body.get("symbol", "")
+async def codebase_references(body: schemas.CodebaseReferencesBody):
+    repo_id = body.repo_id
+    symbol = body.symbol
     db = get_async_db()
     config = await load_config(db)
     cg_cfg = config.get("modules", {}).get("codebase_graph", {})

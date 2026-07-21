@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 from httpx import AsyncClient, ASGITransport
 from finops.daemon.app import app
@@ -9,6 +11,7 @@ FIXED_EMBEDDING = [0.1] * 1024
 def mock_embed(monkeypatch):
     monkeypatch.setattr("finops.modules.codebase_graph.embed_query", lambda t: FIXED_EMBEDDING)
     monkeypatch.setattr("finops.modules.codebase_graph.embed_documents", lambda ts: [FIXED_EMBEDDING] * len(ts))
+    monkeypatch.setenv("FINOPS_ALLOWED_INDEX_ROOTS", str(Path("tests/fixtures").resolve()))
 
 
 @pytest.fixture
@@ -88,7 +91,8 @@ async def test_codebase_references_endpoint(client):
     assert isinstance(data["callees"], list)
 
 
-async def test_full_reindex_drops_deleted_file(client, finops_db, tmp_path):
+async def test_full_reindex_drops_deleted_file(client, finops_db, tmp_path, monkeypatch):
+    monkeypatch.setenv("FINOPS_ALLOWED_INDEX_ROOTS", str(tmp_path.resolve()))
     from finops.db.collections import CODEBASE_NODES
     a = tmp_path / "a.py"
     b = tmp_path / "b.py"

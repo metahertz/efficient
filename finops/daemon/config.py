@@ -24,6 +24,27 @@ DEFAULT_CONFIG: dict = {
 }
 
 
+_PATCHABLE_KEYS = {
+    "modules", "strategy", "embedding_model", "embedding_dimensions",
+    "cost_per_input_token", "cost_per_output_token",
+}
+
+
+def _check_keys(obj: dict) -> None:
+    for k, v in obj.items():
+        if not isinstance(k, str) or k.startswith("$") or "." in k:
+            raise ValueError(f"invalid config key: {k!r}")
+        if isinstance(v, dict):
+            _check_keys(v)
+
+
+def validate_patch(patch: dict) -> None:
+    unknown = set(patch) - _PATCHABLE_KEYS
+    if unknown:
+        raise ValueError(f"unknown config keys: {sorted(unknown)}")
+    _check_keys(patch)
+
+
 async def load_config(db: AsyncIOMotorDatabase) -> dict:
     doc = await db[CONFIG].find_one({"_id": "global"})
     if doc is None:

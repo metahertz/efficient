@@ -42,6 +42,7 @@ services:
       - FINOPS_DB_NAME=finops
       - FINOPS_TEST_MONGODB_URI=mongodb://mongodb-test:27017
       - HF_HOME=/root/.cache/huggingface
+      - FINOPS_ALLOWED_INDEX_ROOTS=/workspace
     depends_on:
       mongodb:
         condition: service_healthy
