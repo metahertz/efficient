@@ -3,10 +3,12 @@
 A local, MongoDB-backed daemon that saves AI tokens: codebase graph indexing,
 semantic caching, agent memory, context compression, and hybrid retrieval,
 combined into one pipeline and exposed over HTTP to every major AI framework —
-including a native MCP integration for Claude Code. The Python package is
-`efficient` and the installed CLI is `efficient` (the repo and CLI go by the
-shorter, user-facing name; the package keeps its original internal name to
-avoid a disruptive rename of the code).
+including a native MCP integration for Claude Code. The Python package, CLI,
+and env-var prefix (`EFFICIENT_*`) all share the name `efficient`.
+
+> Historical note: before 2026-07-21 the package and env vars were named
+> `finops` (project "fullFinOps-AI"); dated documents under `docs/superpowers/`
+> retain that name.
 
 ## Quick start
 
