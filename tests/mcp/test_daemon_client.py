@@ -16,9 +16,10 @@ class _FakeResponse:
 class _FakeClient:
     calls = []
 
-    def __init__(self, base_url=None, timeout=None):
+    def __init__(self, base_url=None, timeout=None, headers=None):
         self.base_url = base_url
         self.timeout = timeout
+        self.headers = headers
 
     async def __aenter__(self):
         return self
@@ -27,7 +28,7 @@ class _FakeClient:
         return False
 
     async def post(self, path, json=None):
-        _FakeClient.calls.append({"base_url": self.base_url, "path": path, "json": json})
+        _FakeClient.calls.append({"base_url": self.base_url, "path": path, "json": json, "headers": self.headers})
         return _FakeResponse({"echoed": path})
 
 
@@ -117,3 +118,10 @@ async def test_memory_store_posts_store():
     assert call["json"] == {"agent_id": "a1", "session_id": "s1",
                             "turn": "turn text", "response": "response text"}
     assert out == {"echoed": "/memory/store"}
+
+
+async def test_post_sends_bearer_token_when_set(monkeypatch):
+    monkeypatch.setenv("FINOPS_API_TOKEN", "sekret")
+    out = await daemon_client.optimize("test")
+    call = _last()
+    assert call["headers"].get("Authorization") == "Bearer sekret"

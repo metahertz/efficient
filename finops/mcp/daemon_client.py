@@ -6,8 +6,13 @@ def _base_url() -> str:
     return os.getenv("FINOPS_DAEMON_URL", "http://daemon:7432")
 
 
+def _auth_headers() -> dict:
+    token = os.getenv("FINOPS_API_TOKEN", "")
+    return {"Authorization": f"Bearer {token}"} if token else {}
+
+
 async def _post(path: str, payload: dict) -> dict:
-    async with httpx.AsyncClient(base_url=_base_url(), timeout=60.0) as c:
+    async with httpx.AsyncClient(base_url=_base_url(), timeout=60.0, headers=_auth_headers()) as c:
         r = await c.post(path, json=payload)
         r.raise_for_status()
         return r.json()

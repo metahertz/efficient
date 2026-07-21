@@ -34,8 +34,9 @@ def start():
             PID_FILE.unlink(missing_ok=True)
     PID_FILE.parent.mkdir(parents=True, exist_ok=True)
     port = os.getenv("FINOPS_PORT", "7432")
+    host = os.getenv("FINOPS_HOST", "127.0.0.1")
     proc = subprocess.Popen(
-        ["uvicorn", "finops.daemon.app:app", "--host", "0.0.0.0", "--port", port],
+        ["uvicorn", "finops.daemon.app:app", "--host", host, "--port", port],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )

@@ -84,3 +84,24 @@ def test_status_shows_module_state():
     assert "daemon running" in result.output
     assert "ON" in result.output
     assert "OFF" in result.output
+
+
+def test_start_binds_localhost_by_default(tmp_path, monkeypatch):
+    import finops.cli.main as cli_main
+    monkeypatch.setattr(cli_main, "PID_FILE", tmp_path / "daemon.pid")
+    monkeypatch.delenv("FINOPS_HOST", raising=False)
+    calls = {}
+
+    class FakeProc:
+        pid = 4242
+
+    def fake_popen(argv, **kwargs):
+        calls["argv"] = argv
+        return FakeProc()
+
+    monkeypatch.setattr(cli_main.subprocess, "Popen", fake_popen)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["start"])
+    assert result.exit_code == 0
+    host_idx = calls["argv"].index("--host") + 1
+    assert calls["argv"][host_idx] == "127.0.0.1"

@@ -54,13 +54,14 @@ services:
       dockerfile: Dockerfile
       target: base
     ports:
-      - "7432:7432"
+      - "127.0.0.1:7432:7432"
     volumes:
       - hf_cache:/root/.cache/huggingface
     environment:
       - FINOPS_MONGODB_URI=mongodb://mongodb:27017
       - FINOPS_DB_NAME=finops
       - HF_HOME=/root/.cache/huggingface
+      - FINOPS_API_TOKEN=${FINOPS_API_TOKEN:-}
     depends_on:
       mongodb:
         condition: service_healthy
@@ -73,6 +74,7 @@ services:
     command: python -m finops.mcp.server
     environment:
       - FINOPS_DAEMON_URL=http://daemon:7432
+      - FINOPS_API_TOKEN=${FINOPS_API_TOKEN:-}
     volumes:
       - .:/workspace
     depends_on:
