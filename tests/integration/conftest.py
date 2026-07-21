@@ -49,5 +49,9 @@ def live_daemon():
         yield url
     finally:
         proc.terminate()
-        proc.wait(timeout=15)
+        try:
+            proc.wait(timeout=15)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.wait(timeout=15)
         MongoClient(MONGO_URI, directConnection=True).drop_database(LIVE_DB)
