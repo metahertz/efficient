@@ -13,7 +13,6 @@ DEFAULT_CONFIG: dict = {
                               "fact_extraction": {"provider": "anthropic", "base_url": "", "model": ""}},
         "context_compressor":{"enabled": True,  "token_threshold": 8000, "target_ratio": 4.0},
         "hybrid_retrieval":  {"enabled": False, "top_k": 5, "rrf_k": 60},
-        "benchmark_runner":  {"enabled": True,  "judge_model": "claude-sonnet-4-6"},
     },
     "strategy":              "compose_then_compress",
     "embedding_model":       "voyage-4-nano",

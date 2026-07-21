@@ -53,6 +53,14 @@ cp *.sh <your-project>/.claude/hooks/ && chmod +x <your-project>/.claude/hooks/*
 Extend the `case`/`find` filters in the hook scripts (currently `.py`, matching
 the codebase-graph extractor) as more language extractors land.
 
+## Auth
+
+If the daemon has `FINOPS_API_TOKEN` set, export the same variable in the
+environment Claude Code runs in — the hooks pick it up and attach it as a
+bearer `Authorization` header automatically on every daemon request. Also run
+`efficient warmup` once before your first SessionStart so the autoindex hook
+doesn't hit a slow cold index on the first prompt.
+
 ## Verify
 - **Read steer:** ask Claude to read a 500-line file → denied, pivots to `lookup_symbol`.
 - **Indexing:** `curl -s localhost:7432/metrics` → `codebase_graph` events climb; edit a file and confirm `find_references` reflects it.

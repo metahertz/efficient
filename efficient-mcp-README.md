@@ -1,7 +1,8 @@
 # efficient — Claude Code MCP Server
 
 The efficient MCP server exposes the token-saving daemon to Claude Code as native tools:
-`optimize_context`, `index_codebase`, `lookup_symbol`, `find_references`, `retrieve_memory`, `store_memory`.
+`optimize_context`, `index_codebase`, `lookup_symbol`, `find_references`, `retrieve_memory`,
+`store_memory`, `reindex_file`.
 
 It is a Python (FastMCP) server that runs inside the project's Docker container over
 stdio and talks HTTP to the efficient daemon. No Node toolchain is required.
@@ -29,7 +30,11 @@ required for clean stdio JSON-RPC framing.
 
 ### Option A — `claude mcp add`
 
-    claude mcp add efficient -- docker compose -f /Users/matt.johnson/ClaudeCodeRepo/fullFinOps-AI/docker-compose.yml run --rm -T mcp
+    claude mcp add efficient -- docker compose -f <absolute path to this repo>/docker-compose.yml run --rm -T mcp
+
+For example, from the repo root:
+
+    claude mcp add efficient -- docker compose -f $(pwd)/docker-compose.yml run --rm -T mcp
 
 ### Option B — `~/.claude.json` (or the project's `.mcp.json`) snippet
 
@@ -40,7 +45,7 @@ required for clean stdio JSON-RPC framing.
           "args": [
             "compose",
             "-f",
-            "/Users/matt.johnson/ClaudeCodeRepo/fullFinOps-AI/docker-compose.yml",
+            "<absolute path to this repo>/docker-compose.yml",
             "run",
             "--rm",
             "-T",
@@ -55,6 +60,18 @@ reads `FINOPS_DAEMON_URL` (baked into the `mcp` compose service as
 `http://daemon:7432`) and joins the compose network, it reaches the running daemon
 container directly.
 
+## Security
+
+- The daemon binds to `127.0.0.1` by default; set `FINOPS_HOST` to override if you
+  need it reachable from elsewhere.
+- Set `FINOPS_API_TOKEN` to require a bearer token on daemon requests (`/health`,
+  `/metrics`, and `/dashboard*` stay exempt). `docker compose` passes the same
+  `FINOPS_API_TOKEN` through to both the `daemon` and `mcp` services, so the MCP
+  server authenticates automatically once it's set.
+- `index_codebase` only indexes paths that fall under `modules.codebase_graph.repo_paths`
+  (as configured in the daemon's Mongo-backed config) or `FINOPS_ALLOWED_INDEX_ROOTS`
+  (a colon-separated list of additional allowed roots).
+
 ## Notes
 
 - The daemon must be up first (`docker compose up -d daemon`); the MCP process is
@@ -65,3 +82,6 @@ container directly.
 - stdout is the MCP protocol channel; the server logs only to stderr.
 - Index a repo before using `lookup_symbol`: call `index_codebase(repo_id, path)`
   where `path` is a directory inside the mounted `/workspace`.
+- `/codebase/index-file` (what the `reindex_file` tool and the project's hooks use)
+  is mount-free — it accepts file contents directly over HTTP, so it needs no
+  allowlisted root and works without a bind mount.
