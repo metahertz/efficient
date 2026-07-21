@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 import time
 from datetime import datetime, timezone, timedelta
@@ -63,7 +64,7 @@ class SemanticCache(BaseModule):
                 baseline_tokens=saved,
             )
 
-        embedding = embed_query(key)
+        embedding = await asyncio.to_thread(embed_query, key)
         pipeline = [
             {
                 "$vectorSearch": {
@@ -121,7 +122,7 @@ class SemanticCache(BaseModule):
     ) -> None:
         key = self._key_material_raw(prompt, agent_id, corpus_id)
         prompt_hash = hashlib.sha256(key.encode()).hexdigest()
-        embedding = embed_documents([key])[0]
+        embedding = (await asyncio.to_thread(embed_documents, [key]))[0]
         now = datetime.now(timezone.utc)
         expires_at = now + timedelta(hours=self._ttl_hours)
         await self._db[CACHE_ENTRIES].update_one(

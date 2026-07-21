@@ -1,3 +1,4 @@
+import asyncio
 import time
 import uuid
 from datetime import datetime, timezone
@@ -52,10 +53,12 @@ class ContextCompressor(BaseModule):
             )
 
         rate = 1.0 / self._target_ratio
-        result = _get_compressor().compress_prompt(
-            [request.context],
-            rate=rate,
-            force_tokens=["\n", "?"],
+        result = await asyncio.to_thread(
+            lambda: _get_compressor().compress_prompt(
+                [request.context],
+                rate=rate,
+                force_tokens=["\n", "?"],
+            )
         )
         compressed = result["compressed_prompt"]
         compressed_tokens = _count_tokens(compressed)

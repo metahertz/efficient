@@ -1,3 +1,4 @@
+import asyncio
 import os
 import time
 from datetime import datetime, timezone, timedelta
@@ -109,7 +110,7 @@ class AgentMemory(BaseModule):
         return total
 
     async def _get_episodic_memory(self, agent_id: str, query: str) -> list[str]:
-        embedding = embed_query(query)
+        embedding = await asyncio.to_thread(embed_query, query)
         pipeline = [
             {
                 "$vectorSearch": {
@@ -128,7 +129,7 @@ class AgentMemory(BaseModule):
         return results
 
     async def _get_semantic_memory(self, agent_id: str, query: str) -> list[str]:
-        embedding = embed_query(query)
+        embedding = await asyncio.to_thread(embed_query, query)
         pipeline = [
             {
                 "$vectorSearch": {
@@ -174,10 +175,10 @@ class AgentMemory(BaseModule):
         return [f.strip() for f in raw.splitlines() if f.strip()]
 
     async def _extract_and_store_facts(self, agent_id: str, turn: str, response: str) -> None:
-        facts = self._extract_facts(turn, response)
+        facts = await asyncio.to_thread(self._extract_facts, turn, response)
         if not facts:
             return
-        fact_embeddings = embed_documents(facts)
+        fact_embeddings = await asyncio.to_thread(embed_documents, facts)
         now = datetime.now(timezone.utc)
         expires_at = now + timedelta(days=self._semantic_ttl)
         for fact, emb in zip(facts, fact_embeddings):
