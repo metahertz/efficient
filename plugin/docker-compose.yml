@@ -9,6 +9,10 @@ services:
     restart: unless-stopped
     volumes:
       - mongodb_data:/data/db
+      # atlas-local generates a replica-set keyfile in /data/configdb at first
+      # init; without a volume it dies on container recreation ("Unable to
+      # acquire security key[s]").
+      - mongodb_config:/data/configdb
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.runCommand('ping').ok"]
       interval: 10s
@@ -49,4 +53,5 @@ services:
 
 volumes:
   mongodb_data:
+  mongodb_config:
   hf_cache:

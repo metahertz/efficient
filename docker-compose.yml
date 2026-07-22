@@ -5,6 +5,9 @@ services:
       - "27017:27017"
     volumes:
       - mongodb_data:/data/db
+      # atlas-local keeps its replica-set keyfile in /data/configdb; persist it
+      # or the container dies on recreation ("Unable to acquire security key[s]").
+      - mongodb_config:/data/configdb
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.runCommand('ping').ok"]
       interval: 10s
@@ -20,6 +23,7 @@ services:
       - "27018:27017"
     volumes:
       - mongodb_test_data:/data/db
+      - mongodb_test_config:/data/configdb
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.runCommand('ping').ok"]
       interval: 10s
@@ -83,5 +87,7 @@ services:
 
 volumes:
   mongodb_data:
+  mongodb_config:
   mongodb_test_data:
+  mongodb_test_config:
   hf_cache:
