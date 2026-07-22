@@ -1,7 +1,7 @@
 {
   "name": "efficient",
   "displayName": "efficient",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Token-saving toolkit for Claude Code: codebase graph, semantic cache, agent memory, and context hooks backed by a local daemon that this plugin auto-starts.",
   "author": {
     "name": "metahertz",
