@@ -21,12 +21,20 @@ if ! command -v docker >/dev/null 2>&1; then
   exit 0
 fi
 
+# Monitors run in the session working directory, so $PWD is the project.
+index_project() {
+  [ -x "$PLUGIN_ROOT/scripts/efficient-autoindex.sh" ] || return 0
+  CLAUDE_PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$PWD}" \
+    "$PLUGIN_ROOT/scripts/efficient-autoindex.sh" >/dev/null 2>&1 &
+}
+
 if curl -sf -m 2 "$HEALTH_URL" >/dev/null 2>&1; then
   echo "efficient daemon running at localhost:7432"
 else
   echo "efficient: starting daemon stack (first run builds images and downloads models — this can take minutes)"
   if compose up -d --wait daemon >/dev/null 2>&1 && curl -sf -m 5 "$HEALTH_URL" >/dev/null 2>&1; then
-    echo "efficient daemon up at localhost:7432"
+    echo "efficient daemon up at localhost:7432 — indexing project in background"
+    index_project
   else
     echo "efficient: daemon failed to start — try: docker compose -f \"$COMPOSE_FILE\" up daemon"
     exit 0
@@ -40,7 +48,8 @@ while sleep 30; do
     if [ "$new" = "down" ]; then
       echo "efficient daemon DOWN (localhost:7432 unreachable)"
     else
-      echo "efficient daemon recovered"
+      echo "efficient daemon recovered — re-indexing project in background"
+      index_project
     fi
     state=$new
   fi
