@@ -13,8 +13,10 @@ def _get_model() -> SentenceTransformer:
     if _model is None:
         with _model_lock:
             if _model is None:
+                from efficient import activity
                 name = os.getenv("EFFICIENT_EMBEDDING_MODEL", _MODEL_ID)
-                _model = SentenceTransformer(name, trust_remote_code=True, truncate_dim=_DIM)
+                with activity.activity(f"loading embedding model ({name})", notify=True):
+                    _model = SentenceTransformer(name, trust_remote_code=True, truncate_dim=_DIM)
     return _model
 
 

@@ -192,3 +192,25 @@ body {
   padding: 14px;
   font-size: 12px;
 }
+
+.active-ops { list-style: none; margin: 0 0 10px; padding: 0; }
+.active-op {
+  padding: 6px 10px;
+  margin-bottom: 6px;
+  font-size: 13px;
+  border-left: 3px solid var(--accent, #4a9eff);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+@keyframes pulse { 50% { opacity: 0.55; } }
+
+.activity-log {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 240px;
+  overflow-y: auto;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+}
+.activity-event { padding: 3px 0; color: var(--muted); white-space: pre-wrap; word-break: break-word; }
+.activity-error { color: var(--danger); }

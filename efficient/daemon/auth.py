@@ -4,7 +4,7 @@ import secrets
 from fastapi import HTTPException, Request
 
 # Paths a browser or liveness probe hits without credentials.
-_EXEMPT_PREFIXES = ("/health", "/metrics", "/dashboard")
+_EXEMPT_PREFIXES = ("/health", "/metrics", "/dashboard", "/status")
 
 
 async def require_token(request: Request) -> None:

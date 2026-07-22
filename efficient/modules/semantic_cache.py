@@ -11,6 +11,12 @@ from efficient.db.collections import CACHE_ENTRIES
 from efficient.db.vector import vector_search
 
 
+def _hit(detail: str) -> str:
+    from efficient import activity
+    activity.emit(f"cache {detail}")
+    return detail
+
+
 class SemanticCache(BaseModule):
     name = "semantic_cache"
 
@@ -59,7 +65,7 @@ class SemanticCache(BaseModule):
                 tokens_out=0,
                 tokens_saved=saved,
                 latency_ms=(time.perf_counter() - t0) * 1000,
-                detail="exact hash hit",
+                detail=_hit("exact hash hit"),
                 short_circuit=True,
                 baseline_tokens=saved,
             )
@@ -98,7 +104,7 @@ class SemanticCache(BaseModule):
                 tokens_out=0,
                 tokens_saved=saved,
                 latency_ms=(time.perf_counter() - t0) * 1000,
-                detail=f"semantic hit (similarity={score:.3f})",
+                detail=_hit(f"semantic hit (similarity={score:.3f})"),
                 short_circuit=True,
                 baseline_tokens=saved,
             )

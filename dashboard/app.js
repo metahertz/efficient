@@ -236,10 +236,53 @@ async function searchMemory() {
   }
 }
 
+let activitySince = 0;
+const activityLog = [];
+const ACTIVITY_MAX_ROWS = 50;
+
+function renderActivity(active) {
+  const ops = $("active-ops");
+  ops.replaceChildren();
+  for (const a of active) {
+    const li = document.createElement("li");
+    li.className = "active-op";
+    li.textContent = a.message + " · " + a.elapsed_s + "s";
+    ops.appendChild(li);
+  }
+  const log = $("activity-log");
+  log.replaceChildren();
+  if (activityLog.length === 0) {
+    const li = document.createElement("li");
+    li.className = "muted";
+    li.textContent = "no activity yet";
+    log.appendChild(li);
+    return;
+  }
+  for (const e of activityLog) {
+    const li = document.createElement("li");
+    li.className = "activity-event" + (e.level === "error" ? " activity-error" : "");
+    const ts = new Date(e.ts).toLocaleTimeString();
+    li.textContent = ts + "  " + e.message;
+    log.appendChild(li);
+  }
+}
+
+async function refreshActivity() {
+  try {
+    const status = await getJSON("/status?since=" + activitySince);
+    for (const e of status.events) activityLog.unshift(e);
+    activityLog.length = Math.min(activityLog.length, ACTIVITY_MAX_ROWS);
+    activitySince = status.last_seq;
+    renderActivity(status.active);
+  } catch (e) {
+    /* daemon down — health dot already reports it */
+  }
+}
+
 async function poll() {
   const up = await refreshHealth();
   if (up) {
-    await Promise.all([refreshConfig(), refreshMetrics()]);
+    await Promise.all([refreshConfig(), refreshMetrics(), refreshActivity()]);
     $("last-updated").textContent = "updated " + new Date().toLocaleTimeString();
   }
 }

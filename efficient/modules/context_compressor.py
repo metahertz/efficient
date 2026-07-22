@@ -20,12 +20,18 @@ def _get_compressor() -> PromptCompressor:
     if _compressor is None:
         with _compressor_lock:
             if _compressor is None:
-                _compressor = PromptCompressor(
-                    model_name=_MODEL_NAME,
-                    use_llmlingua2=True,
-                    device_map="cpu",
-                )
+                from efficient import activity
+                with activity.activity("loading compressor model (LLMLingua-2)", notify=True):
+                    _compressor = _build_compressor()
     return _compressor
+
+
+def _build_compressor() -> PromptCompressor:
+    return PromptCompressor(
+        model_name=_MODEL_NAME,
+        use_llmlingua2=True,
+        device_map="cpu",
+    )
 
 
 def _count_tokens(text: str) -> int:

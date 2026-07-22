@@ -41,8 +41,14 @@ else
   fi
 fi
 
+# Relay milestone events (notify=true) from the daemon's activity feed as
+# notifications; baseline the sequence first so old events aren't replayed.
+STATUS_URL="http://localhost:7432/status"
+last_seq=$(curl -sf -m 5 "$STATUS_URL" 2>/dev/null | jq -r '.last_seq // 0' 2>/dev/null)
+last_seq=${last_seq:-0}
+
 state=up
-while sleep 30; do
+while sleep 10; do
   if curl -sf -m 5 "$HEALTH_URL" >/dev/null 2>&1; then new=up; else new=down; fi
   if [ "$new" != "$state" ]; then
     if [ "$new" = "down" ]; then
@@ -50,7 +56,15 @@ while sleep 30; do
     else
       echo "efficient daemon recovered — re-indexing project in background"
       index_project
+      last_seq=$(curl -sf -m 5 "$STATUS_URL" 2>/dev/null | jq -r '.last_seq // 0' 2>/dev/null)
+      last_seq=${last_seq:-0}
     fi
     state=$new
+  fi
+  if [ "$new" = "up" ] && command -v jq >/dev/null 2>&1; then
+    resp=$(curl -sf -m 5 "${STATUS_URL}?since=${last_seq}" 2>/dev/null) || continue
+    printf '%s' "$resp" | jq -r '.events[] | select(.notify) | "efficient: " + .message' 2>/dev/null
+    seq=$(printf '%s' "$resp" | jq -r '.last_seq // 0' 2>/dev/null)
+    [ -n "$seq" ] && [ "$seq" != "0" ] && last_seq=$seq
   fi
 done

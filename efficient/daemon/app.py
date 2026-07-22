@@ -55,6 +55,12 @@ async def health():
     return {"status": "ok", "version": VERSION}
 
 
+@app.get("/status")
+async def get_status(since: int = 0):
+    from efficient import activity
+    return activity.snapshot(since)
+
+
 @app.get("/config")
 async def get_config():
     db = get_async_db()
@@ -240,6 +246,8 @@ async def memory_store(body: schemas.MemoryStoreBody):
     from efficient.modules.agent_memory import AgentMemory
     memory = AgentMemory(db, mem_cfg)
     await memory.store_turn(agent_id, session_id, turn, response)
+    from efficient import activity
+    activity.emit(f"stored memory turn (agent={agent_id})")
     return {"stored": True}
 
 
@@ -266,19 +274,22 @@ async def codebase_index(body: schemas.CodebaseIndexBody):
                    "(configure modules.codebase_graph.repo_paths or EFFICIENT_ALLOWED_INDEX_ROOTS)",
         )
     from efficient.modules.codebase_graph import CodebaseGraph
+    from efficient import activity
     graph = CodebaseGraph(db, cg_cfg)
-    await graph.clear_repo(body.repo_id)
     files = 0
     symbols = 0
-    for py in root.rglob("*.py"):
-        try:
-            source = py.read_text(encoding="utf-8")
-        except Exception:
-            continue
-        n = await graph.index_file(body.repo_id, str(py.relative_to(root)), source)
-        if n:
-            files += 1
-            symbols += n
+    with activity.activity(f"indexing repo {body.repo_id} from {root}", notify=True):
+        await graph.clear_repo(body.repo_id)
+        for py in root.rglob("*.py"):
+            try:
+                source = py.read_text(encoding="utf-8")
+            except Exception:
+                continue
+            n = await graph.index_file(body.repo_id, str(py.relative_to(root)), source)
+            if n:
+                files += 1
+                symbols += n
+    activity.emit(f"repo {body.repo_id}: {files} files, {symbols} symbols indexed")
     return {"repo_id": body.repo_id, "indexed_files": files, "indexed_symbols": symbols}
 
 
@@ -312,6 +323,8 @@ async def codebase_index_file(body: schemas.CodebaseIndexFileBody):
     from efficient.modules.codebase_graph import CodebaseGraph
     graph = CodebaseGraph(db, cg_cfg)
     n = await graph.index_file(repo_id, file_path, source)
+    from efficient import activity
+    activity.note_indexed(file_path)
     return {"repo_id": repo_id, "file_path": file_path, "indexed_symbols": n}
 
 
