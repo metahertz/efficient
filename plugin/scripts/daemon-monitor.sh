@@ -1,7 +1,17 @@
 #!/usr/bin/env bash
 # Plugin monitor: keep the efficient daemon running and report state changes.
 # Every stdout line becomes a Claude Code notification — print transitions only.
-COMPOSE_FILE="${CLAUDE_PLUGIN_ROOT}/docker-compose.yml"
+# CLAUDE_PLUGIN_ROOT is substituted in the monitors.json command string but is
+# NOT exported to the monitor process env — derive the root from this script's
+# own location and use the env var only as a fallback.
+PLUGIN_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+[ -f "$PLUGIN_ROOT/docker-compose.yml" ] || PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT}"
+COMPOSE_FILE="${PLUGIN_ROOT}/docker-compose.yml"
+
+if [ ! -f "$COMPOSE_FILE" ]; then
+  echo "efficient: cannot locate plugin docker-compose.yml (looked in $PLUGIN_ROOT)"
+  exit 0
+fi
 HEALTH_URL="http://localhost:7432/health"
 
 compose() { docker compose -f "$COMPOSE_FILE" "$@"; }
