@@ -32,7 +32,8 @@ if curl -sf -m 2 "$HEALTH_URL" >/dev/null 2>&1; then
   echo "efficient daemon running at localhost:7432"
 else
   echo "efficient: starting daemon stack (first run builds images and downloads models — this can take minutes)"
-  if compose up -d --wait daemon >/dev/null 2>&1 && curl -sf -m 5 "$HEALTH_URL" >/dev/null 2>&1; then
+  # --build so plugin updates refresh the daemon image (cheap when cached)
+  if compose up -d --wait --build daemon >/dev/null 2>&1 && curl -sf -m 5 "$HEALTH_URL" >/dev/null 2>&1; then
     echo "efficient daemon up at localhost:7432 — indexing project in background"
     index_project
   else
@@ -48,8 +49,17 @@ last_seq=$(curl -sf -m 5 "$STATUS_URL" 2>/dev/null | jq -r '.last_seq // 0' 2>/d
 last_seq=${last_seq:-0}
 
 state=up
+fails=0
 while sleep 10; do
-  if curl -sf -m 5 "$HEALTH_URL" >/dev/null 2>&1; then new=up; else new=down; fi
+  if curl -sf -m 5 "$HEALTH_URL" >/dev/null 2>&1; then
+    new=up
+    fails=0
+  else
+    # tolerate one missed probe: heavy model loads can stall the daemon
+    # briefly without it being down
+    fails=$((fails + 1))
+    if [ "$fails" -ge 2 ]; then new=down; else new=$state; fi
+  fi
   if [ "$new" != "$state" ]; then
     if [ "$new" = "down" ]; then
       echo "efficient daemon DOWN (localhost:7432 unreachable)"
