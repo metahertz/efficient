@@ -103,6 +103,7 @@ function renderStore() {
     ["codebase files", store.codebase.files],
     ["repos indexed", store.codebase.repos],
     ["cache entries", store.cache_entries],
+    ["memory: files (tool + native sync)", store.memory.memory_files],
     ["memory: working sessions", store.memory.working_sessions],
     ["memory: episodic", store.memory.episodic],
     ["memory: semantic facts", store.memory.semantic_facts],

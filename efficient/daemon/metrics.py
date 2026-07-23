@@ -2,7 +2,8 @@ from datetime import datetime, timezone
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from efficient.db.collections import (
     CACHE_ENTRIES, CODEBASE_NODES, COMPRESSION_STATS, CORPUS_CHUNKS,
-    EPISODIC_MEMORY, GATEWAY_LOG, REQUEST_LOG, SEMANTIC_MEMORY, WORKING_MEMORY,
+    EPISODIC_MEMORY, GATEWAY_LOG, MEMORY_FILES, REQUEST_LOG, SEMANTIC_MEMORY,
+    WORKING_MEMORY,
 )
 
 _AUGMENTER_MODULES = ("codebase_graph", "hybrid_retrieval", "agent_memory")
@@ -152,6 +153,7 @@ async def _store_stats(db: AsyncIOMotorDatabase) -> dict:
             "working_sessions": await db[WORKING_MEMORY].count_documents({}),
             "episodic": await db[EPISODIC_MEMORY].count_documents({}),
             "semantic_facts": await db[SEMANTIC_MEMORY].count_documents({}),
+            "memory_files": await db[MEMORY_FILES].count_documents({}),
         },
         "corpus_chunks": await db[CORPUS_CHUNKS].count_documents({}),
     }

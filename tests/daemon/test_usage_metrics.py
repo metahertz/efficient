@@ -63,4 +63,5 @@ async def test_metrics_includes_store_section(client, efficient_db):
     assert store["codebase"]["repos"] == 1
     for key in ("cache_entries", "memory", "corpus_chunks"):
         assert key in store
-    assert set(store["memory"]) == {"working_sessions", "episodic", "semantic_facts"}
+    assert set(store["memory"]) == {"working_sessions", "episodic",
+                                     "semantic_facts", "memory_files"}

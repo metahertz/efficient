@@ -9,7 +9,7 @@
       "name": "efficient",
       "source": "./plugin",
       "description": "Token-saving toolkit: codebase graph, semantic cache, agent memory, and context hooks backed by an auto-started local daemon.",
-      "version": "0.10.0"
+      "version": "0.10.1"
     }
   ]
 }

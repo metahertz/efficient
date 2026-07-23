@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "efficient"
-version = "0.10.0"
+version = "0.10.1"
 description = "Token-saving developer toolkit for AI frameworks"
 requires-python = ">=3.11"
 dependencies = [
