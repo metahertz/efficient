@@ -1,3 +1,4 @@
+import asyncio
 import time
 from datetime import datetime, timezone
 
@@ -81,7 +82,7 @@ class HybridRetrieval(BaseModule):
 
     async def add_chunks(self, corpus_id: str, chunks: list[dict]) -> int:
         texts = [c["text"] for c in chunks]
-        embeddings = embed_documents(texts)
+        embeddings = await asyncio.to_thread(embed_documents, texts)
         now = datetime.now(timezone.utc)
         for chunk, emb in zip(chunks, embeddings):
             tokens = chunk["text"].lower().split()
@@ -103,7 +104,7 @@ class HybridRetrieval(BaseModule):
         return len(chunks)
 
     async def _dense_search(self, corpus_id: str, query: str) -> list[dict]:
-        embedding = embed_query(query)
+        embedding = await asyncio.to_thread(embed_query, query)
         pipeline = [
             {
                 "$vectorSearch": {

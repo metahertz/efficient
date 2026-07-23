@@ -1,3 +1,4 @@
+import asyncio
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -143,14 +144,14 @@ class CodebaseGraph(BaseModule):
         if not symbols:
             return 0
         snippets = [s["source_snippet"] for s in symbols]
-        embeddings = embed_documents(snippets)
+        embeddings = await asyncio.to_thread(embed_documents, snippets)
         now = datetime.now(timezone.utc)
         docs = [{**sym, "embedding": emb, "indexed_at": now} for sym, emb in zip(symbols, embeddings)]
         await self._db[CODEBASE_NODES].insert_many(docs)
         return len(symbols)
 
     async def query(self, repo_id: str, query_text: str, k: int = 5) -> list[dict]:
-        embedding = embed_query(query_text)
+        embedding = await asyncio.to_thread(embed_query, query_text)
         pipeline = [
             {
                 "$vectorSearch": {
