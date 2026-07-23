@@ -136,6 +136,30 @@ async def test_gateway_exempt_from_daemon_auth(client, monkeypatch):
     assert r.status_code == 200
 
 
+async def test_guardian_fields_and_invalidation(client, efficient_db):
+    from efficient.daemon import cache_guardian
+    cache_guardian.reset()
+    hdrs = {"x-claude-code-session-id": "sess-1"}
+    body1 = {"model": "claude-fake", "tools": [{"name": "a"}],
+             "messages": [{"role": "user", "content": "one"}]}
+    await client.post("/v1/messages", json=body1, headers=hdrs)
+    body2 = {**body1, "tools": [{"name": "a"}, {"name": "b"}],
+             "messages": [{"role": "user", "content": "two"}]}
+    await client.post("/v1/messages", json=body2, headers=hdrs)
+    docs = await _wait_for_log(efficient_db, 2)
+    docs.sort(key=lambda d: d["created_at"])
+    assert docs[0]["session_id"] == "sess-1"
+    assert docs[0]["invalidator"] is None
+    assert docs[1]["invalidator"] == "tools_changed"
+    assert "cache_read_ratio" in docs[1]
+
+    r = await client.get("/metrics")
+    gw = r.json()["gateway"]
+    assert gw["invalidations"] == 1
+    assert gw["sessions"] == 1
+    assert 0 <= gw["cache_read_ratio"] <= 1
+
+
 def test_cli_claude_sets_base_url(monkeypatch):
     import efficient.cli.main as cli_main
     captured = {}

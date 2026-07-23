@@ -72,7 +72,7 @@ def _parse_usage_from_json(body: bytes) -> dict:
     }
 
 
-async def _record(doc: dict) -> None:
+async def _record(doc: dict, alert: str | None = None) -> None:
     global _first_request_seen
     try:
         from efficient import activity
@@ -86,6 +86,8 @@ async def _record(doc: dict) -> None:
             f"in={doc['input_tokens']} out={doc['output_tokens']} "
             f"cache_read={doc['cache_read_input_tokens']}"
         )
+        if alert:
+            activity.emit(f"gateway: {alert}", level="warning", notify=True)
     except Exception:
         # measurement must never break the wire path
         pass
@@ -98,15 +100,17 @@ async def gateway(request: Request, path: str):
     # Force an uncompressed upstream response: httpx would otherwise advertise
     # gzip, and the usage tee reads raw wire bytes (compressed = unparseable).
     headers["accept-encoding"] = "identity"
+    session_id = request.headers.get("x-claude-code-session-id", "default")
     model = ""
     is_stream = False
+    parsed_body: dict = {}
     if body:
         try:
-            parsed = json.loads(body)
-            model = parsed.get("model", "")
-            is_stream = bool(parsed.get("stream"))
+            parsed_body = json.loads(body)
+            model = parsed_body.get("model", "")
+            is_stream = bool(parsed_body.get("stream"))
         except (ValueError, UnicodeDecodeError):
-            pass
+            parsed_body = {}
 
     t0 = time.perf_counter()
     client = _get_client()
@@ -163,9 +167,16 @@ async def gateway(request: Request, path: str):
                     usage = _parse_usage_from_sse(usage_lines)
                 else:
                     usage = _parse_usage_from_json(json_body)
-                doc = {**base_doc, **usage,
+                health = {}
+                try:
+                    from efficient.daemon import cache_guardian
+                    health = cache_guardian.analyze(session_id, body, parsed_body, usage)
+                except Exception:
+                    pass
+                alert = health.pop("alert", None) if health else None
+                doc = {**base_doc, **usage, **health,
                        "latency_ms": (time.perf_counter() - t0) * 1000}
-                await _record(doc)
+                await _record(doc, alert=alert)
 
     return StreamingResponse(
         relay(), status_code=upstream.status_code, headers=response_headers,

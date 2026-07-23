@@ -94,7 +94,8 @@ async def aggregate_metrics(db: AsyncIOMotorDatabase) -> dict:
 async def _gateway_stats(db: AsyncIOMotorDatabase) -> dict:
     stats = {"requests": 0, "input_tokens": 0, "output_tokens": 0,
              "cache_read_tokens": 0, "cache_creation_tokens": 0,
-             "duplicate_requests": 0}
+             "duplicate_requests": 0, "cache_read_ratio": 0.0,
+             "invalidations": 0, "sessions": 0}
     pipeline = [{
         "$group": {
             "_id": None,
@@ -103,12 +104,20 @@ async def _gateway_stats(db: AsyncIOMotorDatabase) -> dict:
             "output_tokens": {"$sum": "$output_tokens"},
             "cache_read_tokens": {"$sum": "$cache_read_input_tokens"},
             "cache_creation_tokens": {"$sum": "$cache_creation_input_tokens"},
+            "invalidations": {"$sum": {"$cond": [{"$ifNull": ["$invalidator", False]}, 1, 0]}},
+            "sessions": {"$addToSet": "$session_id"},
         }
     }]
     async for doc in db[GATEWAY_LOG].aggregate(pipeline):
         stats.update({k: int(doc[k]) for k in
                       ("requests", "input_tokens", "output_tokens",
-                       "cache_read_tokens", "cache_creation_tokens")})
+                       "cache_read_tokens", "cache_creation_tokens",
+                       "invalidations")})
+        stats["sessions"] = len([s for s in doc["sessions"] if s])
+        total_prompt = (stats["input_tokens"] + stats["cache_read_tokens"]
+                        + stats["cache_creation_tokens"])
+        if total_prompt:
+            stats["cache_read_ratio"] = round(stats["cache_read_tokens"] / total_prompt, 4)
     dup_pipeline = [
         {"$match": {"body_hash": {"$ne": ""}}},
         {"$group": {"_id": "$body_hash", "n": {"$sum": 1}}},

@@ -138,6 +138,11 @@ function renderGateway() {
     ["prompt-cache created tokens", gw.cache_creation_tokens],
     ["duplicate requests (exact-cache potential)", gw.duplicate_requests],
   ];
+  const health = [
+    ["prompt-cache read ratio", fmtPct(gw.cache_read_ratio)],
+    ["cache invalidations detected", fmtInt(gw.invalidations)],
+    ["sessions observed", fmtInt(gw.sessions)],
+  ];
   list.replaceChildren();
   for (const [label, value] of rows) {
     const li = document.createElement("li");
@@ -147,6 +152,17 @@ function renderGateway() {
     const val = document.createElement("span");
     val.className = "store-value";
     val.textContent = fmtInt(value);
+    li.append(name, val);
+    list.appendChild(li);
+  }
+  for (const [label, formatted] of health) {
+    const li = document.createElement("li");
+    li.className = "store-item";
+    const name = document.createElement("span");
+    name.textContent = label;
+    const val = document.createElement("span");
+    val.className = "store-value";
+    val.textContent = formatted;
     li.append(name, val);
     list.appendChild(li);
   }
