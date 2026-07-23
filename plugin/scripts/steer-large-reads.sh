@@ -10,7 +10,8 @@ case "$file" in
 esac
 [ -f "$file" ] || exit 0
 lines=$(wc -l < "$file" 2>/dev/null | tr -d ' ')
-if [ "${lines:-0}" -gt 400 ]; then
+THRESHOLD="${EFFICIENT_READ_STEER_LINES:-150}"
+if [ "${lines:-0}" -gt "$THRESHOLD" ]; then
   jq -n --arg f "$file" --arg n "$lines" '{
     hookSpecificOutput: {
       hookEventName: "PreToolUse",

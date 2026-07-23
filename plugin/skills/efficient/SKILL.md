@@ -6,8 +6,10 @@ description: Use the efficient MCP tools (lookup_symbol, find_references, retrie
 # Using the `efficient` MCP tools (token optimization)
 
 The `efficient` MCP server is connected and its daemon is auto-started by this
-plugin's monitor. Prefer these tools over brute-force file reading and
-re-derivation. Use a stable `repo_id` and `agent_id` of `"project"` (the
+plugin's monitor. ALWAYS use these tools instead of brute-force file reading
+and re-derivation: `lookup_symbol` before reading a file to find a definition,
+`find_references` before grepping an identifier. Policy hooks may deny large
+`Read`s and identifier `Grep`s that these tools can answer. Use a stable `repo_id` and `agent_id` of `"project"` (the
 plugin's hooks use the same), so the codebase graph and memory accrue
 consistently.
 

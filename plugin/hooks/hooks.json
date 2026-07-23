@@ -9,6 +9,10 @@
             "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/efficient-autoindex.sh",
             "async": true,
             "statusMessage": "Indexing codebase into efficient…"
+          },
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/session-context.sh"
           }
         ]
       }
@@ -30,6 +34,15 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/steer-large-reads.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Grep",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/steer-grep.sh"
           }
         ]
       }

@@ -44,7 +44,7 @@ def _commands(node):
 def test_hooks_reference_existing_executable_scripts():
     hooks = _load(PLUGIN / "hooks" / "hooks.json")
     commands = list(_commands(hooks))
-    assert len(commands) == 4
+    assert len(commands) == 6
     for cmd in commands:
         rel = re.sub(r'"?\$\{CLAUDE_PLUGIN_ROOT\}"?/', "", cmd)
         script = PLUGIN / rel
