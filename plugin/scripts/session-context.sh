@@ -2,8 +2,8 @@
 # SessionStart hook (sync, fast): inject a directive context note when the
 # efficient codebase graph has data, so sessions actually use the MCP tools.
 . "$(dirname "$0")/_repo_id.sh"
-AUTH_ARGS=()
-[ -n "${EFFICIENT_API_TOKEN:-}" ] && AUTH_ARGS=(-H "Authorization: Bearer $EFFICIENT_API_TOKEN")
+AUTH_ARGS=(-H "X-Efficient-Client: claude-code")
+[ -n "${EFFICIENT_API_TOKEN:-}" ] && AUTH_ARGS+=(-H "Authorization: Bearer $EFFICIENT_API_TOKEN")
 cat >/dev/null  # drain stdin
 rid=$(compute_repo_id)
 metrics=$(curl -s -m 2 "${AUTH_ARGS[@]}" http://localhost:7432/metrics 2>/dev/null) || exit 0

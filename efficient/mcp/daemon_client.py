@@ -7,8 +7,11 @@ def _base_url() -> str:
 
 
 def _auth_headers() -> dict:
+    headers = {"X-Efficient-Client": "claude-code"}
     token = os.getenv("EFFICIENT_API_TOKEN", "")
-    return {"Authorization": f"Bearer {token}"} if token else {}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    return headers
 
 
 async def _post(path: str, payload: dict) -> dict:

@@ -3,8 +3,8 @@
 # (~/.claude/projects/<project>/memory/*.md) into efficient's memory_files
 # store under /memories/native/, making them vector-searchable via
 # retrieve_memory and the recall hook. Unchanged files are no-ops daemon-side.
-AUTH_ARGS=()
-[ -n "${EFFICIENT_API_TOKEN:-}" ] && AUTH_ARGS=(-H "Authorization: Bearer $EFFICIENT_API_TOKEN")
+AUTH_ARGS=(-H "X-Efficient-Client: claude-code")
+[ -n "${EFFICIENT_API_TOKEN:-}" ] && AUTH_ARGS+=(-H "Authorization: Bearer $EFFICIENT_API_TOKEN")
 [ -n "$CLAUDE_PROJECT_DIR" ] || exit 0
 
 slug=$(printf '%s' "$CLAUDE_PROJECT_DIR" | tr '/.' '--')

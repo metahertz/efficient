@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # PostToolUse hook: re-index a file into the efficient codebase graph after Claude edits it.
 . "$(dirname "$0")/_repo_id.sh"
-AUTH_ARGS=()
-[ -n "${EFFICIENT_API_TOKEN:-}" ] && AUTH_ARGS=(-H "Authorization: Bearer $EFFICIENT_API_TOKEN")
+AUTH_ARGS=(-H "X-Efficient-Client: claude-code")
+[ -n "${EFFICIENT_API_TOKEN:-}" ] && AUTH_ARGS+=(-H "Authorization: Bearer $EFFICIENT_API_TOKEN")
 input=$(cat)
 file=$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty')
 [ -z "$file" ] && exit 0

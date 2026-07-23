@@ -89,7 +89,13 @@ async def aggregate_metrics(db: AsyncIOMotorDatabase) -> dict:
         "per_module":         per_module,
         "store":              await _store_stats(db),
         "gateway":            await _gateway_stats(db),
+        "clients":            _client_stats(),
     }
+
+
+def _client_stats() -> list[dict]:
+    from efficient.daemon import clients
+    return clients.snapshot()
 
 
 async def _gateway_stats(db: AsyncIOMotorDatabase) -> dict:

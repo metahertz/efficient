@@ -65,6 +65,7 @@ async function refreshMetrics() {
     renderModules();
     renderStore();
     renderGateway();
+    renderClients();
   } catch (e) {
     latestMetrics = null;
   }
@@ -119,6 +120,40 @@ function renderStore() {
     val.className = "store-value";
     val.textContent = fmtInt(value);
     li.append(name, val);
+    list.appendChild(li);
+  }
+}
+
+function renderClients() {
+  const list = $("clients-list");
+  const cl = (latestMetrics && latestMetrics.clients) || [];
+  if (cl.length === 0) {
+    list.innerHTML = '<li class="muted">no active clients — run <code>efficient claude</code> ' +
+      'or use the MCP tools to see capabilities light up</li>';
+    return;
+  }
+  list.replaceChildren();
+  for (const c of cl) {
+    const li = document.createElement("li");
+    li.className = "client-item";
+    const head = document.createElement("div");
+    head.className = "client-head";
+    const name = document.createElement("span");
+    name.className = "client-name";
+    name.textContent = c.client;
+    const seen = document.createElement("span");
+    seen.className = "muted";
+    seen.textContent = "· active " + Math.round(c.last_seen_s) + "s ago";
+    head.append(name, seen);
+    const chips = document.createElement("div");
+    chips.className = "chips";
+    for (const cap of c.capabilities) {
+      const chip = document.createElement("span");
+      chip.className = "chip";
+      chip.textContent = cap;
+      chips.appendChild(chip);
+    }
+    li.append(head, chips);
     list.appendChild(li);
   }
 }

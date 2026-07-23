@@ -58,6 +58,15 @@ from efficient.daemon.gateway import router as gateway_router
 app.include_router(gateway_router)
 
 
+@app.middleware("http")
+async def _track_client(request, call_next):
+    from efficient.daemon import clients
+    cap = clients.capability_for(request.url.path)
+    if cap:
+        clients.note(clients.resolve_client(request.url.path, request.headers), cap)
+    return await call_next(request)
+
+
 @app.get("/health")
 async def health():
     return {"status": "ok", "version": VERSION}

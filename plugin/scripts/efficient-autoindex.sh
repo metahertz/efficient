@@ -5,8 +5,8 @@
 # the daemon rather than bailing: on a fresh plugin install the monitor may
 # still be building images when the session starts.
 . "$(dirname "$0")/_repo_id.sh"
-AUTH_ARGS=()
-[ -n "${EFFICIENT_API_TOKEN:-}" ] && AUTH_ARGS=(-H "Authorization: Bearer $EFFICIENT_API_TOKEN")
+AUTH_ARGS=(-H "X-Efficient-Client: claude-code")
+[ -n "${EFFICIENT_API_TOKEN:-}" ] && AUTH_ARGS+=(-H "Authorization: Bearer $EFFICIENT_API_TOKEN")
 [ -n "$CLAUDE_PROJECT_DIR" ] || exit 0
 cd "$CLAUDE_PROJECT_DIR" || exit 0
 rid=$(compute_repo_id)

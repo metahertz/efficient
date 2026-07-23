@@ -3,8 +3,8 @@
 # efficient codebase graph already knows, deny the grep and hand Claude the
 # graph's answer instead. Requires jq; silently allows if the daemon is down.
 . "$(dirname "$0")/_repo_id.sh"
-AUTH_ARGS=()
-[ -n "${EFFICIENT_API_TOKEN:-}" ] && AUTH_ARGS=(-H "Authorization: Bearer $EFFICIENT_API_TOKEN")
+AUTH_ARGS=(-H "X-Efficient-Client: claude-code")
+[ -n "${EFFICIENT_API_TOKEN:-}" ] && AUTH_ARGS+=(-H "Authorization: Bearer $EFFICIENT_API_TOKEN")
 input=$(cat)
 pattern=$(printf '%s' "$input" | jq -r '.tool_input.pattern // empty')
 [ -z "$pattern" ] && exit 0

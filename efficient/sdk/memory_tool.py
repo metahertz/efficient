@@ -29,8 +29,11 @@ class EfficientMemoryTool(BetaAbstractMemoryTool):
         self._agent_id = agent_id
 
     def _headers(self) -> dict:
+        headers = {"X-Efficient-Client": "agent-sdk"}
         token = os.getenv("EFFICIENT_API_TOKEN", "")
-        return {"Authorization": f"Bearer {token}"} if token else {}
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        return headers
 
     def _post(self, command: str, **args) -> str:
         payload = {"agent_id": self._agent_id, "command": command,
