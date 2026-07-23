@@ -4,7 +4,9 @@ import secrets
 from fastapi import HTTPException, Request
 
 # Paths a browser or liveness probe hits without credentials.
-_EXEMPT_PREFIXES = ("/health", "/metrics", "/dashboard", "/status")
+# /v1 carries the caller's own Anthropic Authorization header (gateway
+# passthrough) — the daemon bearer check must not intercept it.
+_EXEMPT_PREFIXES = ("/health", "/metrics", "/dashboard", "/status", "/v1")
 
 
 async def require_token(request: Request) -> None:

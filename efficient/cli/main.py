@@ -73,6 +73,20 @@ def status():
         click.echo("○ daemon not running")
 
 
+@cli.command(context_settings={"ignore_unknown_options": True, "allow_extra_args": True})
+@click.argument("args", nargs=-1, type=click.UNPROCESSED)
+def claude(args):
+    """Launch Claude Code routed through the efficient gateway."""
+    url = _daemon_url()
+    try:
+        httpx.get(f"{url}/health", timeout=2.0)
+    except Exception:
+        click.echo(f"warning: efficient daemon not reachable at {url} — "
+                   "model calls will fail until it is up (docker compose up -d daemon)")
+    env = {**os.environ, "ANTHROPIC_BASE_URL": url}
+    os.execvpe("claude", ["claude", *args], env)
+
+
 @cli.command()
 def warmup():
     """Download and cache local models (embeddings + compressor)."""

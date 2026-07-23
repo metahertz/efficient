@@ -54,6 +54,9 @@ app = FastAPI(title="efficient Daemon", lifespan=lifespan, dependencies=[Depends
 from efficient.daemon.dashboard_routes import router as dashboard_router
 app.include_router(dashboard_router)
 
+from efficient.daemon.gateway import router as gateway_router
+app.include_router(gateway_router)
+
 
 @app.get("/health")
 async def health():

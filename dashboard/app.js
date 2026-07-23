@@ -64,6 +64,7 @@ async function refreshMetrics() {
     renderTokens();
     renderModules();
     renderStore();
+    renderGateway();
   } catch (e) {
     latestMetrics = null;
   }
@@ -106,6 +107,36 @@ function renderStore() {
     ["memory: episodic", store.memory.episodic],
     ["memory: semantic facts", store.memory.semantic_facts],
     ["retrieval corpus chunks", store.corpus_chunks],
+  ];
+  list.replaceChildren();
+  for (const [label, value] of rows) {
+    const li = document.createElement("li");
+    li.className = "store-item";
+    const name = document.createElement("span");
+    name.textContent = label;
+    const val = document.createElement("span");
+    val.className = "store-value";
+    val.textContent = fmtInt(value);
+    li.append(name, val);
+    list.appendChild(li);
+  }
+}
+
+function renderGateway() {
+  const list = $("gateway-list");
+  const gw = latestMetrics && latestMetrics.gateway;
+  if (!gw || gw.requests === 0) {
+    list.innerHTML = '<li class="muted">no traffic yet — launch with <code>efficient claude</code> ' +
+      'to route Claude Code through the gateway</li>';
+    return;
+  }
+  const rows = [
+    ["requests proxied", gw.requests],
+    ["input tokens", gw.input_tokens],
+    ["output tokens", gw.output_tokens],
+    ["prompt-cache read tokens", gw.cache_read_tokens],
+    ["prompt-cache created tokens", gw.cache_creation_tokens],
+    ["duplicate requests (exact-cache potential)", gw.duplicate_requests],
   ];
   list.replaceChildren();
   for (const [label, value] of rows) {

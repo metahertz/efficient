@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from efficient.db.collections import (
     CACHE_ENTRIES, CODEBASE_NODES, COMPRESSION_STATS, CORPUS_CHUNKS,
-    EPISODIC_MEMORY, REQUEST_LOG, SEMANTIC_MEMORY, WORKING_MEMORY,
+    EPISODIC_MEMORY, GATEWAY_LOG, REQUEST_LOG, SEMANTIC_MEMORY, WORKING_MEMORY,
 )
 
 _AUGMENTER_MODULES = ("codebase_graph", "hybrid_retrieval", "agent_memory")
@@ -87,7 +87,36 @@ async def aggregate_metrics(db: AsyncIOMotorDatabase) -> dict:
         "compression_ratio":  comp_ratio,
         "per_module":         per_module,
         "store":              await _store_stats(db),
+        "gateway":            await _gateway_stats(db),
     }
+
+
+async def _gateway_stats(db: AsyncIOMotorDatabase) -> dict:
+    stats = {"requests": 0, "input_tokens": 0, "output_tokens": 0,
+             "cache_read_tokens": 0, "cache_creation_tokens": 0,
+             "duplicate_requests": 0}
+    pipeline = [{
+        "$group": {
+            "_id": None,
+            "requests": {"$sum": 1},
+            "input_tokens": {"$sum": "$input_tokens"},
+            "output_tokens": {"$sum": "$output_tokens"},
+            "cache_read_tokens": {"$sum": "$cache_read_input_tokens"},
+            "cache_creation_tokens": {"$sum": "$cache_creation_input_tokens"},
+        }
+    }]
+    async for doc in db[GATEWAY_LOG].aggregate(pipeline):
+        stats.update({k: int(doc[k]) for k in
+                      ("requests", "input_tokens", "output_tokens",
+                       "cache_read_tokens", "cache_creation_tokens")})
+    dup_pipeline = [
+        {"$match": {"body_hash": {"$ne": ""}}},
+        {"$group": {"_id": "$body_hash", "n": {"$sum": 1}}},
+        {"$group": {"_id": None, "dups": {"$sum": {"$subtract": ["$n", 1]}}}},
+    ]
+    async for doc in db[GATEWAY_LOG].aggregate(dup_pipeline):
+        stats["duplicate_requests"] = int(doc["dups"])
+    return stats
 
 
 async def _store_stats(db: AsyncIOMotorDatabase) -> dict:

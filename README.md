@@ -79,6 +79,21 @@ Claude Code — the daemon, MCP server, and hooks all pick it up.
 For manual (non-plugin) MCP registration, see `efficient-mcp-README.md`; the
 hook scripts live in `plugin/scripts/` if you want to wire them yourself.
 
+### Gateway mode (measure Claude Code's model traffic)
+
+Launch Claude Code through the daemon and every model call is proxied
+verbatim (streaming preserved, nothing mutated) while efficient measures
+usage — tokens, Anthropic prompt-cache utilization, duplicate requests:
+
+```bash
+efficient claude            # sets ANTHROPIC_BASE_URL and execs claude
+```
+
+The dashboard's Gateway panel shows the running totals. Upstream defaults to
+`https://api.anthropic.com`; override with `EFFICIENT_GATEWAY_UPSTREAM`. v1 is
+read-only measurement — cache serving and compression decisions will be built
+on what these numbers show.
+
 `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` are optional and only needed for the
 `/complete` endpoint and agent-memory fact extraction — see `.env.example`.
 Everything else (embeddings, codebase indexing, caching) runs locally with no
