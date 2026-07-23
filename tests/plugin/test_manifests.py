@@ -76,6 +76,16 @@ def test_hook_scripts_bash_syntax():
         subprocess.run(["bash", "-n", str(script)], check=True)
 
 
+def test_graph_hooks_use_derived_repo_id():
+    # regression: repo_id must never be hardcoded "project" in graph-scoping
+    # hooks (caused cross-project symbol leakage)
+    for name in ("efficient-autoindex.sh", "reindex-on-edit.sh",
+                 "steer-grep.sh", "steer-large-reads.sh", "session-context.sh"):
+        text = (PLUGIN / "scripts" / name).read_text()
+        assert "compute_repo_id" in text, name
+        assert 'repo_id=\\"project\\"' not in text and '"project"' not in text, name
+
+
 @pytest.mark.skipif(shutil.which("docker") is None, reason="docker not installed")
 def test_compose_file_valid():
     subprocess.run(

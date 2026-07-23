@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "efficient"
-version = "0.9.1"
+version = "0.10.0"
 description = "Token-saving developer toolkit for AI frameworks"
 requires-python = ">=3.11"
 dependencies = [
@@ -22,6 +22,8 @@ dependencies = [
     "python-dotenv>=1.0",
     "tree-sitter>=0.23",
     "tree-sitter-python>=0.23",
+    "tree-sitter-typescript>=0.23",
+    "tree-sitter-javascript>=0.23",
     "llmlingua>=0.2",
     "rank-bm25>=0.2",
     "datasets>=2.20",
