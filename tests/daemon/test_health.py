@@ -11,4 +11,6 @@ async def test_health_returns_ok():
     assert r.status_code == 200
     data = r.json()
     assert data["status"] == "ok"
-    assert data["version"] == "0.1.0"
+    from efficient.daemon.app import VERSION
+    assert data["version"] == VERSION
+    assert data["version"] != "0.0.0-dev"

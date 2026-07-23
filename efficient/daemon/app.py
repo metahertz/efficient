@@ -13,7 +13,12 @@ from efficient.db.vector import vector_search
 from efficient.daemon.strategies import get_strategy
 from efficient.modules._base import OptimizeRequest
 
-VERSION = "0.1.0"
+from importlib.metadata import PackageNotFoundError, version as _pkg_version
+
+try:
+    VERSION = _pkg_version("efficient")
+except PackageNotFoundError:
+    VERSION = "0.0.0-dev"
 
 
 def _check_prerequisites(sync_db) -> None:
