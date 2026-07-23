@@ -1,6 +1,9 @@
 from datetime import datetime, timezone
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from efficient.db.collections import CACHE_ENTRIES, COMPRESSION_STATS, REQUEST_LOG
+from efficient.db.collections import (
+    CACHE_ENTRIES, CODEBASE_NODES, COMPRESSION_STATS, CORPUS_CHUNKS,
+    EPISODIC_MEMORY, REQUEST_LOG, SEMANTIC_MEMORY, WORKING_MEMORY,
+)
 
 _AUGMENTER_MODULES = ("codebase_graph", "hybrid_retrieval", "agent_memory")
 
@@ -83,4 +86,34 @@ async def aggregate_metrics(db: AsyncIOMotorDatabase) -> dict:
         "cache_hit_rate":     round(cache_hit_rate, 4),
         "compression_ratio":  comp_ratio,
         "per_module":         per_module,
+        "store":              await _store_stats(db),
+    }
+
+
+async def _store_stats(db: AsyncIOMotorDatabase) -> dict:
+    """What's seeded in the backing store (as opposed to usage savings)."""
+    codebase = {"symbols": 0, "files": 0, "repos": 0}
+    pipeline = [{
+        "$group": {
+            "_id": None,
+            "symbols": {"$sum": 1},
+            "files": {"$addToSet": {"repo": "$repo_id", "file": "$file_path"}},
+            "repos": {"$addToSet": "$repo_id"},
+        }
+    }]
+    async for doc in db[CODEBASE_NODES].aggregate(pipeline):
+        codebase = {
+            "symbols": int(doc["symbols"]),
+            "files": len(doc["files"]),
+            "repos": len(doc["repos"]),
+        }
+    return {
+        "codebase": codebase,
+        "cache_entries": await db[CACHE_ENTRIES].count_documents({}),
+        "memory": {
+            "working_sessions": await db[WORKING_MEMORY].count_documents({}),
+            "episodic": await db[EPISODIC_MEMORY].count_documents({}),
+            "semantic_facts": await db[SEMANTIC_MEMORY].count_documents({}),
+        },
+        "corpus_chunks": await db[CORPUS_CHUNKS].count_documents({}),
     }

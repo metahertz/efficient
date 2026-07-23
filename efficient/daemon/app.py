@@ -308,12 +308,33 @@ async def codebase_query(body: schemas.CodebaseQueryBody):
     cg_cfg = config.get("modules", {}).get("codebase_graph", {})
     from efficient.modules.codebase_graph import CodebaseGraph
     graph = CodebaseGraph(db, cg_cfg)
+    import time as _time
+    t0 = _time.perf_counter()
     results = await graph.query(repo_id, query, k)
     out = [{
         "symbol": r.get("symbol"), "type": r.get("type"),
         "file_path": r.get("file_path"), "line_start": r.get("line_start"),
         "line_end": r.get("line_end"), "source_snippet": r.get("source_snippet"),
     } for r in results]
+    if results:
+        # Honest savings: the counterfactual to a symbol lookup is reading the
+        # whole file(s) the symbols came from (what the read-steer hook avoids).
+        from efficient.modules.codebase_graph import _count_tokens
+        file_tokens = {}
+        for r in results:
+            file_tokens[r.get("file_path")] = max(
+                file_tokens.get(r.get("file_path"), 0), int(r.get("file_tokens", 0))
+            )
+        baseline = sum(file_tokens.values())
+        returned = sum(_count_tokens(r.get("source_snippet", "")) for r in results)
+        from efficient.daemon.metrics import record_module_events
+        await record_module_events(db, [{
+            "module": "codebase_graph",
+            "tokens_saved": max(0, baseline - returned),
+            "tokens_added": returned,
+            "baseline_tokens": baseline,
+            "latency_ms": (_time.perf_counter() - t0) * 1000,
+        }])
     return {"repo_id": repo_id, "results": out}
 
 

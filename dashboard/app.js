@@ -63,6 +63,7 @@ async function refreshMetrics() {
     latestMetrics = await getJSON("/metrics");
     renderTokens();
     renderModules();
+    renderStore();
   } catch (e) {
     latestMetrics = null;
   }
@@ -87,6 +88,37 @@ function renderTokens() {
 function moduleMetric(name) {
   if (!latestMetrics || !Array.isArray(latestMetrics.per_module)) return null;
   return latestMetrics.per_module.find((p) => p.module === name) || null;
+}
+
+function renderStore() {
+  const list = $("store-list");
+  const store = latestMetrics && latestMetrics.store;
+  if (!store) {
+    list.innerHTML = '<li class="muted">no data yet</li>';
+    return;
+  }
+  const rows = [
+    ["codebase symbols", store.codebase.symbols],
+    ["codebase files", store.codebase.files],
+    ["repos indexed", store.codebase.repos],
+    ["cache entries", store.cache_entries],
+    ["memory: working sessions", store.memory.working_sessions],
+    ["memory: episodic", store.memory.episodic],
+    ["memory: semantic facts", store.memory.semantic_facts],
+    ["retrieval corpus chunks", store.corpus_chunks],
+  ];
+  list.replaceChildren();
+  for (const [label, value] of rows) {
+    const li = document.createElement("li");
+    li.className = "store-item";
+    const name = document.createElement("span");
+    name.textContent = label;
+    const val = document.createElement("span");
+    val.className = "store-value";
+    val.textContent = fmtInt(value);
+    li.append(name, val);
+    list.appendChild(li);
+  }
 }
 
 function renderModules() {

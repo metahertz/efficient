@@ -85,18 +85,18 @@ class CodebaseGraph(BaseModule):
         super().__init__()
         self._db = db
         self._repo_paths: list[str] = config.get("repo_paths", [])
+        # the hooks/MCP tools index under "project"; keep the pipeline on the
+        # same id unless explicitly configured otherwise
+        self._repo_id: str = config.get("repo_id") or (
+            self._repo_paths[0] if self._repo_paths else "project"
+        )
 
     def is_enabled(self) -> bool:
         return True
 
     async def process(self, request: OptimizeRequest) -> tuple[OptimizeRequest, ModuleResult]:
-        if not self._repo_paths:
-            return request, ModuleResult(
-                module=self.name, tokens_in=0, tokens_out=0, tokens_saved=0,
-                latency_ms=0.0, detail="no repos configured",
-            )
         t0 = time.perf_counter()
-        repo_id = self._repo_paths[0]
+        repo_id = self._repo_id
         results = await self.query(repo_id, request.prompt)
         if not results:
             return request, ModuleResult(
@@ -146,7 +146,9 @@ class CodebaseGraph(BaseModule):
         snippets = [s["source_snippet"] for s in symbols]
         embeddings = await asyncio.to_thread(embed_documents, snippets)
         now = datetime.now(timezone.utc)
-        docs = [{**sym, "embedding": emb, "indexed_at": now} for sym, emb in zip(symbols, embeddings)]
+        file_tokens = _count_tokens(source)
+        docs = [{**sym, "embedding": emb, "indexed_at": now, "file_tokens": file_tokens}
+                for sym, emb in zip(symbols, embeddings)]
         await self._db[CODEBASE_NODES].insert_many(docs)
         return len(symbols)
 

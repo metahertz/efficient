@@ -214,3 +214,13 @@ body {
 }
 .activity-event { padding: 3px 0; color: var(--muted); white-space: pre-wrap; word-break: break-word; }
 .activity-error { color: var(--danger); }
+
+.subtitle { font-size: 12px; font-weight: normal; color: var(--muted); margin-left: 8px; }
+.store-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 0;
+  font-size: 13px;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.15);
+}
+.store-value { font-variant-numeric: tabular-nums; font-weight: 600; }
