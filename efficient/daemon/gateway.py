@@ -95,6 +95,9 @@ async def _record(doc: dict) -> None:
 async def gateway(request: Request, path: str):
     body = await request.body()
     headers = {k: v for k, v in request.headers.items() if k.lower() not in _HOP_HEADERS}
+    # Force an uncompressed upstream response: httpx would otherwise advertise
+    # gzip, and the usage tee reads raw wire bytes (compressed = unparseable).
+    headers["accept-encoding"] = "identity"
     model = ""
     is_stream = False
     if body:

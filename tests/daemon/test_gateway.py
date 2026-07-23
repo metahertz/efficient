@@ -36,7 +36,8 @@ def _fake_upstream() -> FastAPI:
                 gen(), media_type="text/event-stream",
                 headers={"x-seen-version": request.headers.get("anthropic-version", ""),
                          "x-seen-auth": request.headers.get("authorization", ""),
-                         "x-seen-beta": request.headers.get("anthropic-beta", "")},
+                         "x-seen-beta": request.headers.get("anthropic-beta", ""),
+                         "x-seen-encoding": request.headers.get("accept-encoding", "")},
             )
         return JSONResponse({
             "id": "msg_1", "content": [{"type": "text", "text": "hello"}],
@@ -85,6 +86,8 @@ async def test_stream_passthrough_bytes_and_headers(client):
     assert r.headers["x-seen-version"] == "2023-06-01"
     assert r.headers["x-seen-auth"] == "Bearer sk-ant-xyz"
     assert r.headers["x-seen-beta"] == "context-1,tools-2"
+    # the usage tee reads raw wire bytes — upstream must not compress
+    assert r.headers["x-seen-encoding"] == "identity"
 
 
 async def test_stream_usage_recorded(client, efficient_db):
