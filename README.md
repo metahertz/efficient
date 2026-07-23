@@ -94,6 +94,28 @@ The dashboard's Gateway panel shows the running totals. Upstream defaults to
 read-only measurement — cache serving and compression decisions will be built
 on what these numbers show.
 
+### Memory-tool backend (Agent SDK)
+
+efficient can be the storage backend for the Anthropic API memory tool
+(`memory_20250818`): durable, agent-scoped, and every write is embedded so
+memory becomes vector-searchable (surfaced via `/memory/retrieve`, the
+`retrieve_memory` MCP tool, and the recall hook):
+
+```python
+from anthropic import Anthropic
+from efficient.sdk import EfficientMemoryTool
+
+client = Anthropic()
+runner = client.beta.messages.tool_runner(
+    model="claude-sonnet-5", max_tokens=1024,
+    tools=[EfficientMemoryTool(agent_id="support-bot")],
+    messages=[{"role": "user", "content": "Remember: we deploy on Fridays."}],
+)
+```
+
+The daemon must be running; `EFFICIENT_DAEMON_URL`/`EFFICIENT_API_TOKEN` are
+honored.
+
 `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` are optional and only needed for the
 `/complete` endpoint and agent-memory fact extraction — see `.env.example`.
 Everything else (embeddings, codebase indexing, caching) runs locally with no

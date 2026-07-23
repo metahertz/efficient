@@ -10,7 +10,7 @@ resp=$(curl -s -m 10 -X POST http://localhost:7432/memory/retrieve \
   "${AUTH_ARGS[@]}" \
   -H 'content-type: application/json' \
   -d "$(jq -n --arg a project --arg q "$q" '{agent_id:$a, query:$q}')" 2>/dev/null) || exit 0
-mem=$(printf '%s' "$resp" | jq -r '((.semantic // []) + (.episodic // [])) | if length > 0 then "Relevant memory (from efficient):\n- " + join("\n- ") else empty end' 2>/dev/null)
+mem=$(printf '%s' "$resp" | jq -r '((.semantic // []) + (.episodic // []) + ((.files // []) | map(.path + ": " + (.snippet | gsub("\n"; " ")))) ) | if length > 0 then "Relevant memory (from efficient):\n- " + join("\n- ") else empty end' 2>/dev/null)
 [ -z "$mem" ] && exit 0
 jq -n --arg c "$mem" '{hookSpecificOutput: {hookEventName: "UserPromptSubmit", additionalContext: $c}}'
 exit 0

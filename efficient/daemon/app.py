@@ -239,7 +239,42 @@ async def memory_retrieve(body: schemas.MemoryRetrieveBody):
     working = await memory._get_working_memory(agent_id)
     episodic = await memory._get_episodic_memory(agent_id, query)
     semantic = await memory._get_semantic_memory(agent_id, query)
-    return {"working": working, "episodic": episodic, "semantic": semantic}
+    files = await _memory_file_search(db, agent_id, query)
+    return {"working": working, "episodic": episodic, "semantic": semantic,
+            "files": files}
+
+
+async def _memory_file_search(db, agent_id: str, query: str) -> list[dict]:
+    import asyncio as _asyncio
+    from efficient.db.collections import MEMORY_FILES
+    from efficient.modules import embeddings
+    embedding = await _asyncio.to_thread(embeddings.embed_query, query)
+    pipeline = [{
+        "$vectorSearch": {
+            "index": "memory_files_vector_index",
+            "path": "embedding",
+            "queryVector": embedding,
+            "numCandidates": 20,
+            "limit": 3,
+            "filter": {"agent_id": {"$eq": agent_id}},
+        }
+    }]
+    results = []
+    for doc in await vector_search(db[MEMORY_FILES], pipeline):
+        results.append({"path": doc["path"], "snippet": doc["content"][:500]})
+    return results
+
+
+@app.post("/memory/tool")
+async def memory_tool(body: schemas.MemoryToolBody):
+    from efficient.daemon import memory_files
+    db = get_async_db()
+    args = body.model_dump(exclude={"agent_id", "command"}, exclude_none=True)
+    try:
+        result = await memory_files.execute(db, body.agent_id, body.command, args)
+        return {"ok": True, "result": result}
+    except memory_files.MemoryToolError as exc:
+        return {"ok": False, "error": str(exc)}
 
 
 @app.post("/memory/store")

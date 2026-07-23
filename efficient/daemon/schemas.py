@@ -31,6 +31,20 @@ class MemoryRetrieveBody(BaseModel):
     query: str = ""
 
 
+class MemoryToolBody(BaseModel):
+    agent_id: str = "default"
+    command: str
+    path: str = ""
+    file_text: str = ""
+    old_str: str = ""
+    new_str: str = ""
+    insert_line: int = 0
+    insert_text: str = ""
+    view_range: list[int] | None = None
+    old_path: str = ""
+    new_path: str = ""
+
+
 class MemoryStoreBody(BaseModel):
     agent_id: str = "default"
     session_id: str = "default"

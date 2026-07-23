@@ -5,6 +5,7 @@ from efficient.db.collections import (
     CODEBASE_NODES, CACHE_ENTRIES, WORKING_MEMORY,
     EPISODIC_MEMORY, SEMANTIC_MEMORY, CORPUS_CHUNKS,
     COMPRESSION_STATS, BENCHMARK_RUNS, REQUEST_LOG, GATEWAY_LOG,
+    MEMORY_FILES,
 )
 
 EMBEDDING_DIMENSIONS = 1024
@@ -14,7 +15,7 @@ VECTOR_SIMILARITY    = "cosine"
 _ALL_COLLECTIONS = (
     CODEBASE_NODES, CACHE_ENTRIES, WORKING_MEMORY, EPISODIC_MEMORY,
     SEMANTIC_MEMORY, COMPRESSION_STATS, CORPUS_CHUNKS, BENCHMARK_RUNS,
-    REQUEST_LOG, GATEWAY_LOG,
+    REQUEST_LOG, GATEWAY_LOG, MEMORY_FILES,
 )
 
 
@@ -99,3 +100,7 @@ def create_all_indexes(db: Database) -> None:
     col = db[GATEWAY_LOG]
     col.create_index("created_at", expireAfterSeconds=2592000)
     col.create_index([("body_hash", ASCENDING)])
+
+    col = db[MEMORY_FILES]
+    col.create_index([("agent_id", ASCENDING), ("path", ASCENDING)], unique=True)
+    _create_vector_index(col, "memory_files_vector_index", filter_paths=["agent_id"])
