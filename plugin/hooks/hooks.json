@@ -13,6 +13,12 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/session-context.sh"
+          },
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/sync-native-memory.sh",
+            "async": true,
+            "statusMessage": "Syncing Claude auto-memory into efficient…"
           }
         ]
       }

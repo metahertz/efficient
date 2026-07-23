@@ -118,6 +118,22 @@ async def test_path_traversal_rejected(client):
         assert out["ok"] is False, bad
 
 
+async def test_unchanged_create_skips_reembed(client, monkeypatch):
+    calls = {"n": 0}
+
+    def counting_embed(ts):
+        calls["n"] += 1
+        return [FIXED] * len(ts)
+
+    monkeypatch.setattr("efficient.daemon.memory_files.embed_documents",
+                        counting_embed)
+    await _tool(client, command="create", path="/memories/same.md", file_text="stable")
+    await _tool(client, command="create", path="/memories/same.md", file_text="stable")
+    assert calls["n"] == 1  # second identical create is a no-op
+    await _tool(client, command="create", path="/memories/same.md", file_text="changed")
+    assert calls["n"] == 2
+
+
 async def test_retrieve_includes_files(client, monkeypatch):
     async def fake_vs(collection, pipeline):
         cursor = collection.find({})

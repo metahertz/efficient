@@ -37,6 +37,10 @@ async def _get(db, agent_id: str, path: str) -> dict | None:
 
 
 async def _put(db, agent_id: str, path: str, content: str) -> None:
+    existing = await db[MEMORY_FILES].find_one(
+        {"agent_id": agent_id, "path": path}, {"content": 1})
+    if existing and existing.get("content") == content:
+        return  # unchanged — skip the re-embed (session-start syncs re-POST files)
     now = datetime.now(timezone.utc)
     await db[MEMORY_FILES].update_one(
         {"agent_id": agent_id, "path": path},
