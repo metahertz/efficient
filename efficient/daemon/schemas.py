@@ -31,6 +31,18 @@ class MemoryRetrieveBody(BaseModel):
     query: str = ""
 
 
+class CorpusChunk(BaseModel):
+    text: str
+    source_file: str = "inline"
+    chunk_index: int | None = None
+    metadata: dict = Field(default_factory=dict)
+
+
+class CorpusAddChunksBody(BaseModel):
+    corpus_id: str
+    chunks: list[CorpusChunk]
+
+
 class MemoryToolBody(BaseModel):
     agent_id: str = "default"
     command: str

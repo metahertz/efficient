@@ -48,6 +48,12 @@ async def find_references(repo_id: str, symbol: str) -> dict:
 
 
 @mcp.tool()
+async def add_corpus(corpus_id: str, chunks: list[dict]) -> dict:
+    """Ingest documents into a retrieval corpus for hybrid (BM25 + vector) search. Each chunk is {text, source_file?, chunk_index?, metadata?}. Query the corpus later via optimize_context(corpus_id=...). Returns the number of chunks added."""
+    return await daemon_client.corpus_add_chunks(corpus_id, chunks)
+
+
+@mcp.tool()
 async def reindex_file(repo_id: str, file_path: str, source: str) -> dict:
     """Re-index a single source file into the codebase graph after it changes; replaces that file's symbols so lookup_symbol and find_references stay accurate. Call after editing a file."""
     return await daemon_client.codebase_index_file(repo_id, file_path, source)

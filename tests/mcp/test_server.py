@@ -61,9 +61,9 @@ async def test_reindex_file_delegates(patch_client):
     assert out == {"tool": "codebase_index_file"}
 
 
-async def test_all_seven_tools_registered():
+async def test_all_tools_registered():
     tools = await server.mcp.list_tools()
     names = {t.name for t in tools}
     assert names == {"optimize_context", "index_codebase", "lookup_symbol",
                      "retrieve_memory", "store_memory", "find_references",
-                     "reindex_file"}
+                     "reindex_file", "add_corpus"}

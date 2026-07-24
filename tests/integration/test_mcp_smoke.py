@@ -21,14 +21,14 @@ async def _run_session(daemon_url, callback):
             return await callback(session)
 
 
-async def test_mcp_lists_seven_tools(live_daemon):
+async def test_mcp_lists_all_tools(live_daemon):
     async def cb(session):
         return await session.list_tools()
     result = await _run_session(live_daemon, cb)
     names = {t.name for t in result.tools}
     assert names == {"optimize_context", "index_codebase", "lookup_symbol",
                      "retrieve_memory", "store_memory", "find_references",
-                     "reindex_file"}
+                     "reindex_file", "add_corpus"}
 
 
 async def test_mcp_optimize_context_roundtrip(live_daemon):

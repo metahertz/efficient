@@ -32,6 +32,10 @@ async def codebase_index(repo_id: str, path: str) -> dict:
     return await _post("/codebase/index", {"repo_id": repo_id, "path": path})
 
 
+async def corpus_add_chunks(corpus_id: str, chunks: list[dict]) -> dict:
+    return await _post("/corpus/add-chunks", {"corpus_id": corpus_id, "chunks": chunks})
+
+
 async def codebase_query(query: str, repo_id: str, k: int = 5) -> dict:
     return await _post("/codebase/query", {"repo_id": repo_id, "query": query, "k": k})
 

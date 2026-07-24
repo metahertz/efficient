@@ -54,6 +54,11 @@ app = FastAPI(title="efficient Daemon", lifespan=lifespan, dependencies=[Depends
 from efficient.daemon.dashboard_routes import router as dashboard_router
 app.include_router(dashboard_router)
 
+# The OpenAI shim's fixed /v1/chat/completions must register BEFORE the
+# gateway's /v1/{path} catch-all so the specific route wins.
+from efficient.daemon.openai_shim import router as openai_shim_router
+app.include_router(openai_shim_router)
+
 from efficient.daemon.gateway import router as gateway_router
 app.include_router(gateway_router)
 
@@ -343,6 +348,27 @@ async def codebase_index(body: schemas.CodebaseIndexBody):
                 symbols += n
     activity.emit(f"repo {body.repo_id}: {files} files, {symbols} symbols indexed")
     return {"repo_id": body.repo_id, "indexed_files": files, "indexed_symbols": symbols}
+
+
+@app.post("/corpus/add-chunks")
+async def corpus_add_chunks(body: schemas.CorpusAddChunksBody):
+    db = get_async_db()
+    config = await load_config(db)
+    hr_cfg = config.get("modules", {}).get("hybrid_retrieval", {})
+    from efficient.modules.hybrid_retrieval import HybridRetrieval
+    retrieval = HybridRetrieval(db, hr_cfg)
+    chunks = []
+    for i, c in enumerate(body.chunks):
+        chunks.append({
+            "text": c.text,
+            "source_file": c.source_file,
+            "chunk_index": c.chunk_index if c.chunk_index is not None else i,
+            "metadata": c.metadata,
+        })
+    from efficient import activity
+    with activity.activity(f"ingesting {len(chunks)} chunks into corpus {body.corpus_id}"):
+        added = await retrieval.add_chunks(body.corpus_id, chunks)
+    return {"corpus_id": body.corpus_id, "added": added}
 
 
 @app.post("/codebase/query")

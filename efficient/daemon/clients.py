@@ -13,6 +13,8 @@ _clients: dict[str, dict[str, float]] = {}
 
 # path prefix -> capability label (first match wins; order matters)
 _CAPABILITY_BY_PATH = [
+    ("/v1/chat/completions", "openai_shim"),
+    ("/corpus", "hybrid_retrieval"),
     ("/v1", "gateway"),
     ("/codebase", "codebase_graph"),
     ("/memory/tool", "memory_tool"),
@@ -38,6 +40,8 @@ def resolve_client(path: str, headers) -> str:
     explicit = headers.get("x-efficient-client")
     if explicit:
         return explicit
+    if path.startswith("/v1/chat/completions"):
+        return "openai-client"
     if path.startswith("/v1"):
         return "claude-code" if headers.get("x-claude-code-session-id") else "api-client"
     return "unknown"

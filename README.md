@@ -116,6 +116,29 @@ runner = client.beta.messages.tool_runner(
 The daemon must be running; `EFFICIENT_DAEMON_URL`/`EFFICIENT_API_TOKEN` are
 honored.
 
+### OpenAI-compatible shim (aider, Continue, Cline, Open WebUI, …)
+
+Point any OpenAI-base-URL client at the daemon to get semantic caching:
+
+```
+OPENAI_BASE_URL=http://localhost:7432/v1
+```
+
+`POST /v1/chat/completions` runs requests through the semantic cache — a hit is
+served locally with no upstream call; a miss is forwarded verbatim to an
+OpenAI-compatible upstream (`EFFICIENT_OPENAI_UPSTREAM`, default
+`https://api.openai.com/v1`) using the caller's bearer key, and the response is
+cached. v1 is cache-only (no compression) and buffers streaming into SSE frames.
+
+### Retrieval corpus (RAG)
+
+Seed a hybrid (BM25 + vector) retrieval corpus, then query it via
+`optimize_context(corpus_id=…)` or the `add_corpus` MCP tool:
+
+```
+POST /corpus/add-chunks {"corpus_id": "docs", "chunks": [{"text": "...", "source_file": "a.md"}]}
+```
+
 `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` are optional and only needed for the
 `/complete` endpoint and agent-memory fact extraction — see `.env.example`.
 Everything else (embeddings, codebase indexing, caching) runs locally with no
