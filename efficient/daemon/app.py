@@ -371,6 +371,16 @@ async def corpus_add_chunks(body: schemas.CorpusAddChunksBody):
     return {"corpus_id": body.corpus_id, "added": added}
 
 
+@app.post("/corpus/remove-file")
+async def corpus_remove_file(body: schemas.CorpusRemoveFileBody):
+    from efficient.db.collections import CORPUS_CHUNKS
+    db = get_async_db()
+    result = await db[CORPUS_CHUNKS].delete_many(
+        {"corpus_id": body.corpus_id, "source_file": body.source_file})
+    return {"corpus_id": body.corpus_id, "source_file": body.source_file,
+            "removed": result.deleted_count}
+
+
 @app.post("/codebase/query")
 async def codebase_query(body: schemas.CodebaseQueryBody):
     repo_id = body.repo_id

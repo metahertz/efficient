@@ -139,6 +139,17 @@ Seed a hybrid (BM25 + vector) retrieval corpus, then query it via
 POST /corpus/add-chunks {"corpus_id": "docs", "chunks": [{"text": "...", "source_file": "a.md"}]}
 ```
 
+Or auto-ingest whole directories — drop notes/docs into watched folders and
+efficient keeps a corpus in sync. Configure `~/.efficient/watch.json`:
+
+```json
+{"watches": [{"path": "~/notes", "corpus_id": "notes"}]}
+```
+
+then `efficient watch --once` (one pass) or `efficient watch` (continuous,
+re-ingests on change, removes chunks on delete). Text formats
+(.md/.txt/.rst/.mdx) by default.
+
 `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` are optional and only needed for the
 `/complete` endpoint and agent-memory fact extraction — see `.env.example`.
 Everything else (embeddings, codebase indexing, caching) runs locally with no

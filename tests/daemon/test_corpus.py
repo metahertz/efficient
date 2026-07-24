@@ -45,3 +45,18 @@ async def test_add_chunks_metrics_store(client):
         "corpus_id": "docs", "chunks": [{"text": "hello", "source_file": "x"}]})
     r = await client.get("/metrics")
     assert r.json()["store"]["corpus_chunks"] >= 1
+
+
+async def test_remove_file(client, efficient_db):
+    from efficient.db.collections import CORPUS_CHUNKS
+    await client.post("/corpus/add-chunks", json={
+        "corpus_id": "docs", "chunks": [
+            {"text": "a", "source_file": "keep.md"},
+            {"text": "b", "source_file": "drop.md"},
+        ]})
+    r = await client.post("/corpus/remove-file",
+                          json={"corpus_id": "docs", "source_file": "drop.md"})
+    assert r.json()["removed"] == 1
+    remaining = [d["source_file"] async for d in
+                 efficient_db[CORPUS_CHUNKS].find({"corpus_id": "docs"})]
+    assert remaining == ["keep.md"]

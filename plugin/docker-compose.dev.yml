@@ -1,0 +1,16 @@
+# Dev override: build the daemon/mcp images from the LOCAL checkout instead of
+# the pinned GitHub tag, so rebuilds are instant and never serve a stale git
+# clone. Use from the repo root:
+#   docker compose -f plugin/docker-compose.yml -f plugin/docker-compose.dev.yml up -d --build daemon
+# (../.. resolves to the repo root relative to plugin/)
+services:
+  daemon:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+      target: base
+  mcp:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+      target: base

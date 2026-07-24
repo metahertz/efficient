@@ -36,6 +36,10 @@ async def corpus_add_chunks(corpus_id: str, chunks: list[dict]) -> dict:
     return await _post("/corpus/add-chunks", {"corpus_id": corpus_id, "chunks": chunks})
 
 
+async def corpus_remove_file(corpus_id: str, source_file: str) -> dict:
+    return await _post("/corpus/remove-file", {"corpus_id": corpus_id, "source_file": source_file})
+
+
 async def codebase_query(query: str, repo_id: str, k: int = 5) -> dict:
     return await _post("/codebase/query", {"repo_id": repo_id, "query": query, "k": k})
 

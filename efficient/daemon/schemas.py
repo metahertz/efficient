@@ -43,6 +43,11 @@ class CorpusAddChunksBody(BaseModel):
     chunks: list[CorpusChunk]
 
 
+class CorpusRemoveFileBody(BaseModel):
+    corpus_id: str
+    source_file: str
+
+
 class MemoryToolBody(BaseModel):
     agent_id: str = "default"
     command: str

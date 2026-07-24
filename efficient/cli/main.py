@@ -88,6 +88,32 @@ def claude(args):
 
 
 @cli.command()
+@click.option("--once", is_flag=True, help="Sync configured directories once and exit.")
+def watch(once):
+    """Watch configured directories (~/.efficient/watch.json) and ingest text
+    files into retrieval corpora."""
+    from efficient.ingest import watcher
+    watches = watcher.load_watches()
+    if not watches:
+        click.echo(f"No watches configured. Create {watcher.CONFIG_PATH} with "
+                   '{"watches": [{"path": "~/notes", "corpus_id": "notes"}]}')
+        return
+    if once:
+        summary = watcher.sync_once(watches)
+        for corpus_id, s in summary.items():
+            click.echo(f"  [{corpus_id}] {s['files']} files, {s['chunks']} chunks")
+        click.echo("Sync complete.")
+        return
+    import asyncio
+    roots = ", ".join(str(w["root"]) for w in watches)
+    click.echo(f"Watching: {roots}  (Ctrl-C to stop)")
+    try:
+        asyncio.run(watcher.watch_forever(watches))
+    except KeyboardInterrupt:
+        click.echo("\nStopped.")
+
+
+@cli.command()
 def warmup():
     """Download and cache local models (embeddings + compressor)."""
     from efficient.modules.embeddings import _get_model
