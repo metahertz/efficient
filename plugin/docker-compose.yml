@@ -22,7 +22,7 @@ services:
 
   daemon:
     build:
-      context: https://github.com/metahertz/efficient.git
+      context: https://github.com/metahertz/efficient.git#v0.12.0
       dockerfile: Dockerfile
       target: base
     restart: unless-stopped
@@ -41,7 +41,7 @@ services:
 
   mcp:
     build:
-      context: https://github.com/metahertz/efficient.git
+      context: https://github.com/metahertz/efficient.git#v0.12.0
       dockerfile: Dockerfile
       target: base
     command: python -m efficient.mcp.server
